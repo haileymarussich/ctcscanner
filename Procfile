@@ -1,1 +1,1 @@
-web: sh setup.sh && streamlit run CTCscanner.py
+web:sh setup.sh && streamlit run CTCscanner.py
