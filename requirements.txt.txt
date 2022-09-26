@@ -7,5 +7,4 @@ streamlit_aggrid
 google-api-python-client
 google-auth-oauthlib
 google-auth
-requests
 future
