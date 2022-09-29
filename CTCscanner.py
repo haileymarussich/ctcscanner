@@ -22,7 +22,6 @@ from streamlit_option_menu import option_menu
 #from st_aggrid import AgGrid
 import numpy as np
 import matplotlib.pyplot as plt
-
 import gspread
 
 
