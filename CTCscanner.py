@@ -7,10 +7,8 @@ Created on Tue Sep 20 13:29:20 2022
 
 # Imports
 from __future__ import print_function
-import os.path
 
 import pandas as pd
-from pandas.tseries.offsets import DateOffset
 from pandas.api.types import (
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -25,15 +23,7 @@ from streamlit_option_menu import option_menu
 import numpy as np
 import matplotlib.pyplot as plt
 
-from googleapiclient.discovery import build
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-
-
-from google.oauth2 import service_account
-from google.auth.transport.requests import AuthorizedSession
-from googleapiclient.discovery import build
-from googleapiclient.http import HttpRequest
 
 
 SPREADSHEET_ID = "13xsnIBC0ftpS2rLKXgSbpMUztVadheV8AROnY1fiVFw"
