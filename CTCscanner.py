@@ -591,6 +591,5 @@ if authentication_status:
                     label = 'Download as CSV',
                     data=convert_df_to_csv(customer_txs),
                     file_name='customer_transactions.csv',
-                    )
                     mime='text/csv',
-                    )       
+                    )
