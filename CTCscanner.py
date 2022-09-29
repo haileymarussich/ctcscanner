@@ -406,8 +406,6 @@ if authentication_status:
         user_text_input = st.text_input("Enter a Wallet Address:", help("Note: check for spaces."))
         if user_text_input:
             dict_value = address_dict.get(user_text_input, 'No Key')
-            if dict_value == None:
-                st.warning('Note: please check for any spaces in your text.')
             if dict_value == 'No Key':
                 st.success('No matches found for key: [ {0} ]'.format(user_text_input))
             else:
@@ -555,7 +553,7 @@ if authentication_status:
                 st.markdown(f'**{key}** : {val}')
             st.text("")   
                 
-            st.markdown("### SAR Report ###")      
+            st.markdown("### SAR ###")      
             with st.expander("Show Details"):
                 sar_list = ['SAR_ID', 'SAR_Type', 'Alert_Date', 'Prompt', 'SAR_TX_Total', 
                              'Date_Filed', 'BL', 'SAR_Notes']
