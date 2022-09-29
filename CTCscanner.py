@@ -553,7 +553,7 @@ if authentication_status:
                 st.markdown(f'**{key}** : {val}')
             st.text("")   
                 
-            st.markdown("### SAR ###")      
+            st.markdown("### Suspicious Activity Report ###")      
             with st.expander("Show Details"):
                 sar_list = ['SAR_ID', 'SAR_Type', 'Alert_Date', 'Prompt', 'SAR_TX_Total', 
                              'Date_Filed', 'BL', 'SAR_Notes']
