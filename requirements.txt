@@ -6,3 +6,4 @@ matplotlib
 streamlit-option-menu
 gspread
 future
+streamlit-authenticator==0.1.5 
