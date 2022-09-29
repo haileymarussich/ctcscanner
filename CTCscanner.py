@@ -558,16 +558,16 @@ if authentication_status:
                 sar_list = ['SAR_ID', 'SAR_Type', 'Alert_Date', 'Prompt', 'SAR_TX_Total', 
                              'Date_Filed', 'BL', 'SAR_Notes']
             
-                reordered_dict2 = {k: original_dict[k] for k in risk_list}
-                for key, val in reordered_dict2.items():
+                reordered_dict3 = {k: original_dict[k] for k in sar_list}
+                for key, val in reordered_dict3.items():
                     st.markdown(f'**{key}** : {val}')            
             st.text("")
             
             st.markdown("### Transactions ###")
             tx_list = ['Percentile', 'Agg_Volume', 'Avg_Volume', 'TX_Count', 'Last_TX']
             
-            reordered_dict3 = {k: original_dict[k] for k in tx_list}
-            for key, val in reordered_dict3.items():
+            reordered_dict4 = {k: original_dict[k] for k in tx_list}
+            for key, val in reordered_dict4.items():
                 st.markdown(f'**{key}** : {val}')
         
             with st.expander("Show Transactions"):
