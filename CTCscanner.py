@@ -380,7 +380,7 @@ if authentication_status:
 # FRAME
         ofac_from_concat = concat_df[['Address', 'Is_BL_Wallet', 'ID', 'Name_C', 'Company_Name', 'Last_TX', 'Status', 'Cust_Notes']]
         ofac_from_concat.sort_values('Last_TX', ascending=False, inplace=True)
-        ofac_from_concat.set_index('Address', inplace=True)    
+        ofac_from_concat.set_index('Address', inplace=True)
 # FILTER
         ofac_from_concat = ofac_from_concat.loc[(ofac_from_concat['Is_BL_Wallet'] == 'Yes')]
         
@@ -422,7 +422,7 @@ if authentication_status:
 # TITLE AND FILE NAMES
         st.title('All')
         concat_df.drop(['indicator_column', 'indicator_column2', 'Months'], axis=1, inplace=True)
-        concat_df = concat_df.sort_values(by='Control', ascending=False)
+        concat_df = concat_df.sort_values(by=['Control', 'TX_Date'], ascending=[False, False])
         concat_df.set_index('Control', inplace=True)           
 # DEFINE DF
         def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
