@@ -581,11 +581,6 @@ if authentication_status:
                 st.write(customer_txs.shape)
                 test = customer_txs.astype(str)
                 st.dataframe(test)
-                
-            with st.expander("Show Original Dictionary"):
-                st.write(original_dict)
-                test = no_duplicates_df.astype(str)
-                st.dataframe(test)
 # DOWNLOAD
                 @st.cache
                 def convert_df_to_csv(df):
