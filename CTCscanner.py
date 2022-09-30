@@ -534,7 +534,7 @@ if authentication_status:
             original_dict = customerdata.to_dict(orient="list")
     
             st.markdown("## Profile for {} ##".format(select))
-            cust_list = ['Name_C', 'ID',  'Phone', 'Email','State', 'DOB', 'Age', 'Referral', 'Company_Name',
+            cust_list = ['ID',  'Phone', 'Email','State', 'DOB', 'Age', 'Referral', 'Company_Name',
                          'Company_Type', 'Cust_Notes', 'Date_Approved', 'Status', 'Purpose', 'Source', 
                          'Occupation', 'Last_Review', 'Statements_Collected']
             
