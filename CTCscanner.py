@@ -422,8 +422,8 @@ if authentication_status:
 # TITLE AND FILE NAMES
         st.title('All')
         concat_df.drop(['indicator_column', 'indicator_column2', 'Months'], axis=1, inplace=True)
-        concat_df = concat_df.sort_values(by=['Control', 'TX_Date'], ascending=[False, False])
-        concat_df.set_index('Control', inplace=True)           
+        concat_df = concat_df.sort_values(by=['TX_Date', 'Control'], ascending=[False, False])
+        concat_df.set_index('Control', inplace=True)   
 # DEFINE DF
         def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
