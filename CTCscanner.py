@@ -524,7 +524,7 @@ if authentication_status:
 # TITLE AND FILE NAMES
         st.title('Customer Search')   
 # FILTER
-        no_duplicates_df = concat_df.drop_duplicates(subset='ID', keep='last')
+        no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Name_C'], keep='last')
         customer_option = no_duplicates_df.Name_C.unique()
         
         select = st.selectbox("Select Customer", customer_option)
@@ -532,9 +532,10 @@ if authentication_status:
         if submit:
             customerdata = no_duplicates_df[no_duplicates_df["Name_C"].astype(str).str.contains(select)]
             original_dict = customerdata.to_dict(orient="list")
+            
     
             st.markdown("## Profile for {} ##".format(select))
-            cust_list = ['Name_C', 'Phone', 'Email','State', 'DOB', 'Age', 'Referral', 'Company_Name',
+            cust_list = ['Name_C', 'ID',  'Phone', 'Email','State', 'DOB', 'Age', 'Referral', 'Company_Name',
                          'Company_Type', 'Cust_Notes', 'Date_Approved', 'Status', 'Purpose', 'Source', 
                          'Occupation', 'Last_Review', 'Statements_Collected']
             
@@ -571,10 +572,10 @@ if authentication_status:
                 st.markdown(f'**{key}** : {val}')
         
             with st.expander("Show Transactions"):
-                customet_tx_frame = concat_df[['Control', 'TX_Date', 'ID', 'Name_T', 'Name_C', 'Amount_Received', 'Asset_Received', 'Received_At', 
+                customer_tx_frame = concat_df[['Control', 'TX_Date', 'ID', 'Name_T', 'Name_C', 'Amount_Received', 'Asset_Received', 'Received_At', 
                                   'Received', 'Amount_Sent', 'Asset_Sent', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                                   'Inventory', 'TX_Notes', 'Wallet_Notes']]
-                customer_txs = customet_tx_frame[customet_tx_frame["Name_C"].astype(str).str.contains(select)]
+                customer_txs = customer_tx_frame[customer_tx_frame["Name_C"].astype(str).str.contains(select)]
                 customer_txs = customer_txs.sort_values(by=['Control', 'TX_Date'], ascending=True)
                 customer_txs.dropna(subset = ['Control'], inplace=True)
                 customer_txs.set_index('Control', inplace=True)
