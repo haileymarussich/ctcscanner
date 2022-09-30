@@ -530,9 +530,8 @@ if authentication_status:
         select = st.selectbox("Select Customer", customer_option)
         submit = st.button("Submit")
         if submit:
-            customerdata = no_duplicates_df[no_duplicates_df["Name_C"].astype(str).str.contains(select)]
+            customerdata = no_duplicates_df[no_duplicates_df["Name_C"].astype(str).str.contains(select, regex=False)]
             original_dict = customerdata.to_dict(orient="list")
-            
     
             st.markdown("## Profile for {} ##".format(select))
             cust_list = ['Name_C', 'ID',  'Phone', 'Email','State', 'DOB', 'Age', 'Referral', 'Company_Name',
@@ -572,16 +571,21 @@ if authentication_status:
                 st.markdown(f'**{key}** : {val}')
         
             with st.expander("Show Transactions"):
-                customer_tx_frame = concat_df[['Control', 'TX_Date', 'ID', 'Name_T', 'Name_C', 'Amount_Received', 'Asset_Received', 'Received_At', 
+                customer_tx_frame = concat_df[['Control', 'TX_Date', 'ID', 'Name_C', 'Amount_Received', 'Asset_Received', 'Received_At', 
                                   'Received', 'Amount_Sent', 'Asset_Sent', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                                   'Inventory', 'TX_Notes', 'Wallet_Notes']]
-                customer_txs = customer_tx_frame[customer_tx_frame["Name_C"].astype(str).str.contains(select)]
+                customer_txs = customer_tx_frame[customer_tx_frame["Name_C"].astype(str).str.contains(select, regex=False)]
                 customer_txs = customer_txs.sort_values(by=['Control', 'TX_Date'], ascending=True)
                 customer_txs.dropna(subset = ['Control'], inplace=True)
                 customer_txs.set_index('Control', inplace=True)
                 st.write(customer_txs.shape)
                 test = customer_txs.astype(str)
-                st.dataframe(test)       
+                st.dataframe(test)
+                
+            with st.expander("Show Original Dictionary"):
+                st.write(original_dict)
+                test = no_duplicates_df.astype(str)
+                st.dataframe(test)
 # DOWNLOAD
                 @st.cache
                 def convert_df_to_csv(df):
