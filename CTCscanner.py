@@ -256,7 +256,7 @@ if authentication_status:
     
 # FILTER
         tx_log_df['TX_Date'] = pd.to_datetime(tx_log_df['TX_Date']).dt.date
-        tx_log_df = tx_log_df.sort_values(['TX_Date', 'Control'], ascending=[True, True])
+        tx_log_df = tx_log_df.sort_values(['TX_Date', 'Control'], ascending=[False, False])
         tx_log_df.reset_index()
         tx_log_df.set_index('Control', inplace=True)
 # PRINT
@@ -422,7 +422,7 @@ if authentication_status:
 # TITLE AND FILE NAMES
         st.title('All')
         concat_df.drop(['indicator_column', 'indicator_column2', 'Months'], axis=1, inplace=True)
-        concat_df = concat_df.sort_values(by='Control', ascending=True)
+        concat_df = concat_df.sort_values(by='Control', ascending=False)
         concat_df.set_index('Control', inplace=True)           
 # DEFINE DF
         def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -524,6 +524,7 @@ if authentication_status:
 # TITLE AND FILE NAMES
         st.title('Customer Search')   
 # FILTER
+        concat_df = concat_df.sort_values(by=['Name_C'], ascending=True)
         no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Name_C'], keep='last')
         customer_option = no_duplicates_df.Name_C.unique()
         
