@@ -205,10 +205,9 @@ if authentication_status:
     concat_df.loc[concat_df['Company_Type'] == "Financial Institution", 'Is_Financial_Inst'] = "True"
     
     watchlist = BL_addresses.Address.values.tolist()
-    concat_df.loc[(concat_df['Address'].str.contains('|'.join(watchlist), case=False)),'Is_BL_Wallet'] = 'True'
-   #concat_df['Is_BL_Wallet'] = concat_df.Address.isin(BL_addresses.Address)
+    watchlist_regex = '|'.join(watchlist)
+    concat_df.loc[(concat_df['Address'].str.contains(watchlist_regex, na = False)),'Is_BL_Wallet'] = 'True'
     concat_df.loc[concat_df['Is_BL_Wallet'] == True, 'Risk_Rating'] = "High Risk"
-   #concat_df['Is_BL_Wallet'] = concat_df['Is_BL_Wallet'].map({True: 'True', False: np.nan})
     
     concat_df.loc[concat_df['Shared_Count'] > 1, 'Risk_Rating'] = "High Risk"
     concat_df.loc[concat_df['Shared_Count'] > 1, 'Is_Shared_Wallet'] = "True"
