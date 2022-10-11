@@ -265,7 +265,7 @@ if authentication_status:
 # FILL NA -- CONCAT_DF
     concat_df = concat_df.replace(["^\s*$"], np.nan, regex=True)
     concat_df["Control"] = pd.to_numeric(concat_df["Control"], downcast='integer', errors="coerce")
-    concat_df["Control"].round()
+    concat_df["Control"] = concat_df["Control"].round()
     
 # PAGES -------------------------------------------------------------------------------------------------------------
         
