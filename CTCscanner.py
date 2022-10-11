@@ -424,7 +424,7 @@ if authentication_status:
         ofac_from_concat.sort_values('Last_TX', ascending=False, inplace=True)
         ofac_from_concat.set_index('Address', inplace=True)
 # FILTER
-        ofac_from_concat = ofac_from_concat.loc[(ofac_from_concat['Is_BL_Wallet'] == 'True')]
+        ofac_from_concat = ofac_from_concat.loc[(ofac_from_concat['Is_BL_Wallet'] == True)]
         
 # PRINT
         st.write(ofac_from_concat.shape)
