@@ -208,7 +208,7 @@ if authentication_status:
     concat_df.loc[(concat_df['Address'].str.contains('|'.join(watchlist), case=False)),'Is_BL_Wallet'] = 'True'
    #concat_df['Is_BL_Wallet'] = concat_df.Address.isin(BL_addresses.Address)
     concat_df.loc[concat_df['Is_BL_Wallet'] == True, 'Risk_Rating'] = "High Risk"
-    concat_df['Is_BL_Wallet'] = concat_df['Is_BL_Wallet'].map({True: 'True', False: np.nan})
+   #concat_df['Is_BL_Wallet'] = concat_df['Is_BL_Wallet'].map({True: 'True', False: np.nan})
     
     concat_df.loc[concat_df['Shared_Count'] > 1, 'Risk_Rating'] = "High Risk"
     concat_df.loc[concat_df['Shared_Count'] > 1, 'Is_Shared_Wallet'] = "True"
