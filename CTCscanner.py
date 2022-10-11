@@ -98,7 +98,6 @@ if authentication_status:
     customer_database_df = customer_database_df.replace(["^\s*$"], np.nan, regex=True)
     
 # DTYPES -- CUSTOMER_DATABASE
-    customer_database_df["Control"] = pd.to_numeric(customer_database_df["Control"], downcast='integer', errors="coerce")
     customer_database_df['Company_Type'] = customer_database_df.Company_Type.astype('category')
     customer_database_df['State'] = customer_database_df.State.astype('category')
     customer_database_df['Statements_Collected'] = customer_database_df.Statements_Collected.astype('category')
@@ -125,6 +124,7 @@ if authentication_status:
 # CLEAN -- CONCAT_DF
     concat_df.columns = concat_df.columns.str.replace(' ', '')
     concat_df = concat_df.sort_values(by='Control', ascending=True)
+    concat_df["Control"] = pd.to_numeric(concat_df["Control"], downcast='integer', errors="coerce")
      
 # LAST_TX -- CONCAT_DF
     concat_df['Last_TX'] = concat_df.groupby('ID')['TX_Date'].transform('max')
