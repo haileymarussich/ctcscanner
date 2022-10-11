@@ -124,7 +124,6 @@ if authentication_status:
 # CLEAN -- CONCAT_DF
     concat_df.columns = concat_df.columns.str.replace(' ', '')
     concat_df = concat_df.sort_values(by='Control', ascending=True)
-    concat_df["Control"] = pd.to_numeric(concat_df["Control"], downcast='integer', errors="coerce")
      
 # LAST_TX -- CONCAT_DF
     concat_df['Last_TX'] = concat_df.groupby('ID')['TX_Date'].transform('max')
@@ -265,6 +264,8 @@ if authentication_status:
     
 # FILL NA -- CONCAT_DF
     concat_df = concat_df.replace(["^\s*$"], np.nan, regex=True)
+    concat_df["Control"] = pd.to_numeric(concat_df["Control"], downcast='integer', errors="coerce")
+    concat_df["Control"].round()
     
 # PAGES -------------------------------------------------------------------------------------------------------------
         
@@ -419,7 +420,14 @@ if authentication_status:
         st.title('Shared Wallets')       
 # PRINT
         st.write(shared_wallets_df.shape)
+        
+        for col in shared_wallets_df.columns:
+            if is_datetime64_any_dtype(shared_wallets_df[col]):
+                shared_wallets_df[col] = pd.to_datetime(shared_wallets_df[col]).dt.date
+            if is_numeric_dtype(shared_wallets_df[col]):
+                shared_wallets_df[col] = shared_wallets_df[col].round(2)
         test = shared_wallets_df.astype("str")
+        
         st.dataframe(test)
 # DOWNLOAD
         @st.cache
@@ -482,7 +490,7 @@ if authentication_status:
         st.title('All')
         concat_df.drop(['indicator_column', 'indicator_column2', 'Months'], axis=1, inplace=True)
         concat_df = concat_df.sort_values(by=['TX_Date', 'Control'], ascending=[False, False])
-        concat_df.set_index('Control', inplace=True)   
+        concat_df.set_index('Control', inplace=True)
 # DEFINE DF
         def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
