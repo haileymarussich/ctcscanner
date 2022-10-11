@@ -633,7 +633,7 @@ if authentication_status:
                 else:
                     st.markdown('**{0}** : {1}'.format(key, val))
                 cnt += 1
-                st.text("")
+            st.text("")
             
             st.markdown("### Transactions ###")
             tx_list = ['Aggregate_Volume', 'Percentile', 'Average_Volume', 'Rolling_Crypto_Sales',
