@@ -98,6 +98,7 @@ if authentication_status:
     customer_database_df = customer_database_df.replace(["^\s*$"], np.nan, regex=True)
     
 # DTYPES -- CUSTOMER_DATABASE
+    customer_database_df["Control"] = pd.to_numeric(customer_database_df["Control"], downcast='integer', errors="coerce")
     customer_database_df['Company_Type'] = customer_database_df.Company_Type.astype('category')
     customer_database_df['State'] = customer_database_df.State.astype('category')
     customer_database_df['Statements_Collected'] = customer_database_df.Statements_Collected.astype('category')
@@ -301,7 +302,14 @@ if authentication_status:
         tx_log_df.reset_index()
         tx_log_df.set_index('Control', inplace=True)
 # PRINT
-        st.write(tx_log_df.shape)         
+        st.write(tx_log_df.shape)
+        
+        for col in tx_log_df.columns:
+            if is_datetime64_any_dtype(tx_log_df[col]):
+                tx_log_df[col] = pd.to_datetime(tx_log_df[col]).dt.date
+            if is_numeric_dtype(tx_log_df[col]):
+                tx_log_df[col] = tx_log_df[col].round(2)
+                    
         test = tx_log_df.astype(str)
         st.dataframe(test)
         #AgGrid(tx_log_df, key = 'txs', editable = True, fit_columns_on_grid_load = True)
@@ -347,12 +355,13 @@ if authentication_status:
         
 # FILTER
         customer_database_df['DOB'] = pd.to_datetime(customer_database_df['DOB']).dt.date
+        customer_database_df['Date_Approved'] = pd.to_datetime(customer_database_df['Date_Approved']).dt.date
         customer_database_df = customer_database_df.sort_values('Date_Approved', ascending=False)
-        #customer_database_df.reset_index()
-        customer_database_df.set_index('Date_Approved', inplace=True)
+        customer_database_df.reset_index()
+        customer_database_df.set_index('Name_C', inplace=True)
         
 # PRINT
-        st.write(customer_database_df.shape)
+        st.write(customer_database_df.shape)   
         test = customer_database_df.astype(str)
         st.dataframe(test)
         #AgGrid(customer_database_df, key = 'customers', editable = True, fit_columns_on_grid_load = True)          
@@ -384,6 +393,13 @@ if authentication_status:
         agg_from_concat.set_index('Percentile', inplace=True)
 # PRINT
         st.write(agg_from_concat.shape)
+        
+        for col in agg_from_concat.columns:
+            if is_datetime64_any_dtype(agg_from_concat[col]):
+                agg_from_concat[col] = pd.to_datetime(agg_from_concat[col]).dt.date
+            if is_numeric_dtype(agg_from_concat[col]):
+                agg_from_concat[col] = agg_from_concat[col].round(2)
+        
         test = agg_from_concat.astype(str)
         st.dataframe(test)
 # DOWNLOAD
@@ -576,6 +592,13 @@ if authentication_status:
         submit = st.button("Submit")
         if submit:
             customerdata = no_duplicates_df[no_duplicates_df["Name_C"].astype(str).str.contains(select, regex=False)]
+            
+            for col in customerdata.columns:
+                if is_datetime64_any_dtype(customerdata[col]):
+                    customerdata[col] = pd.to_datetime(customerdata[col]).dt.date
+                if is_numeric_dtype(customerdata[col]):
+                    customerdata[col] = customerdata[col].round(2)
+                    
             original_dict = customerdata.to_dict(orient="list")
     
             st.markdown("## Profile for {} ##".format(select))
