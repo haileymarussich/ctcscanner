@@ -628,11 +628,11 @@ if authentication_status:
                 for val in vals:
                     key = (keyz[cnt])
                     val = val[0]
-                if pd.isnull(val) == True:
-                    st.markdown('**{0}** : -----'.format(key))
-                else:
-                    st.markdown('**{0}** : {1}'.format(key, val))
-                cnt += 1
+                    if pd.isnull(val) == True:
+                        st.markdown('**{0}** : -----'.format(key))
+                    else:
+                        st.markdown('**{0}** : {1}'.format(key, val))
+                    cnt += 1
             st.text("")
             
             st.markdown("### Transactions ###")
