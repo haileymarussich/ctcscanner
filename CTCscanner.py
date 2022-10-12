@@ -259,8 +259,10 @@ if authentication_status:
     
 # REVIEW NEEDED -- CONCAT_DF 
     concat_df.loc[(concat_df['Risk_Rating'] == "High Risk") &
-                  (concat_df['Date_Approved'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date) & 
-                  (concat_df['Last_Review'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date), 
+                  (concat_df['Date_Approved'].notnull()) & ((
+                  (concat_df['Date_Approved'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date)) | (
+                  (concat_df['Last_Review'].notnull()) &
+                  (concat_df['Last_Review'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date))), 
                   'Review_Needed'] = 'Yes'
     concat_df.loc[(concat_df['Status'] == "Dormant"), 'Review_Needed'] = 'Yes'
     concat_df['Review_Needed'] = concat_df['Review_Needed'].fillna("No")
