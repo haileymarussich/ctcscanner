@@ -211,8 +211,8 @@ if authentication_status:
     shared_wallets_df = shared_wallets_df.sort_values(by='Wallet_Last_TX', ascending=False)
     
     concat_df = pd.merge(concat_df, shared_wallets_df, on = "Address", how = "outer")
-    concat_df['Shared_Identities'] = concat_df.Shared_Identities.astype('str')
-    concat_df['Shared_Names'] = concat_df.Shared_Names.astype('str')
+    concat_df['Shared_Identities'] = concat_df.Shared_Identities.astype(object)
+    concat_df['Shared_Names'] = concat_df.Shared_Names.astype(object)
     
 # RISK_RATING -- CONCAT_DF
     concat_df['Age'] = (datetime.datetime.today() - pd.to_datetime(concat_df['DOB'])).astype('timedelta64[Y]')
@@ -519,6 +519,8 @@ if authentication_status:
         st.title('All')
 # SORT AND INDEX
         concat_df.drop(['indicator_column', 'indicator_column2', 'Months'], axis=1, inplace=True)
+        concat_df['Shared_Identities'] = concat_df.Shared_Identities.astype('str')
+        concat_df['Shared_Names'] = concat_df.Shared_Names.astype('str')
         concat_df = concat_df.sort_values(by=['TX_Date', 'Control'], ascending=[False, False])
         concat_df.set_index('Control', inplace=True)
 # DEFINE DF
@@ -633,7 +635,7 @@ if authentication_status:
             for val in vals:
                 key = (keyz[cnt])
                 val = val[0]
-                if (pd.isnull(val) == True | val == 'nan'):
+                if pd.isnull(val) == True:
                     st.markdown('**{0}** : -----'.format(key))
                 else:
                     st.markdown('**{0}** : {1}'.format(key, val))
