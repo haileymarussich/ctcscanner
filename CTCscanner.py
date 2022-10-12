@@ -242,20 +242,22 @@ if authentication_status:
     concat_df['Is_BL_Wallet'] = concat_df.Is_BL_Wallet.astype('category')
     concat_df['Is_Shared_Wallet'] = concat_df.Is_Shared_Wallet.astype('category')
     
-# "DORMANT" STATUS -- CONCAT_DF
-    concat_df['Months'] = 6
-    concat_df['Last_Tx_Plus_6M'] = (concat_df['Last_TX'] + concat_df['Months'].values.astype("timedelta64[M]"))
-    concat_df.loc[(concat_df['Last_Tx_Plus_6M'] < datetime.datetime.today()) &
-                  (concat_df['Status'] == 'Approved'), 'Status'] = "Dormant"
-    
-    status_options = concat_df.Risk_Rating.unique()
-    concat_df['Status'] = concat_df.Status.astype('category')
-    
 # DATEINDEX_CONCAT
     dateindex_concat = concat_df.set_index('TX_Date') 
 # START AND END DATE
     min_start_date = dateindex_concat.index.min()
     max_end_date = dateindex_concat.index.max()
+    
+# "DORMANT" STATUS -- CONCAT_DF
+    concat_df['Months'] = 6
+    concat_df['Last_Tx_Plus_6M'] = (concat_df['Last_TX'] + concat_df['Months'].values.astype("timedelta64[M]"))
+    concat_df.loc[(concat_df['Last_Tx_Plus_6M'] < datetime.datetime.today()) &
+                  (concat_df['Status'] == 'Approved') & ((concat_df['Last_Review'].notnull()) &
+                  (concat_df['Last_Review'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date)), 
+                  'Status'] = "Dormant"
+    
+    status_options = concat_df.Risk_Rating.unique()
+    concat_df['Status'] = concat_df.Status.astype('category')
     
 # REVIEW NEEDED -- CONCAT_DF 
     concat_df.loc[(concat_df['Risk_Rating'] == "High Risk") &
