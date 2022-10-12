@@ -252,8 +252,7 @@ if authentication_status:
     concat_df['Months'] = 6
     concat_df['Last_Tx_Plus_6M'] = (concat_df['Last_TX'] + concat_df['Months'].values.astype("timedelta64[M]"))
     concat_df.loc[(concat_df['Last_Tx_Plus_6M'] < datetime.datetime.today()) &
-                  (concat_df['Status'] == 'Approved') & ((concat_df['Last_Review'].notnull()) &
-                  (concat_df['Last_Review'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date)), 
+                  (concat_df['Status'] == 'Approved'), 
                   'Status'] = "Dormant"
     
     status_options = concat_df.Risk_Rating.unique()
@@ -261,12 +260,11 @@ if authentication_status:
     
 # REVIEW NEEDED -- CONCAT_DF 
     concat_df.loc[(concat_df['Risk_Rating'] == "High Risk") &
-                  (concat_df['Date_Approved'].notnull()) & ((
-                  (concat_df['Date_Approved'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date)) | (
-                  (concat_df['Last_Review'].notnull()) &
-                  (concat_df['Last_Review'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date))), 
+                  (concat_df['Last_Review'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date), 
                   'Review_Needed'] = 'Yes'
-    concat_df.loc[(concat_df['Status'] == "Dormant"), 'Review_Needed'] = 'Yes'
+    concat_df.loc[(concat_df['Status'] == "Dormant") & 
+                  (concat_df['Last_Review'] + concat_df['Months'].values.astype("timedelta64[M]") < max_end_date),
+                  'Review_Needed'] = 'Yes'
     concat_df['Review_Needed'] = concat_df['Review_Needed'].fillna("No")
     concat_df['Review_Needed'] = concat_df.Review_Needed.astype('category')
     
