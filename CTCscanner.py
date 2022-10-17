@@ -623,9 +623,8 @@ if authentication_status:
         customer_option = concat_df.Name_C.unique()
         select = st.selectbox("Select Customer", customer_option)
         if select == "nan":
-            st.error("Error: Customer name unknown. Please use the radio buttons to choose another search column.")
+            st.warning("Error: Customer name unknown. Please use the radio buttons to choose another search column.")
             adv_search = st.radio("Advanced Search", ['Company Name', 'Phone', 'Username'])
-            #concat_df = concat_df.loc[concat_df.Name_C.isnull()]
             if adv_search == 'Company Name':
                 company_names = concat_df.Company_Name.dropna().unique()
                 selectcomp = st.selectbox("Company", company_names)
