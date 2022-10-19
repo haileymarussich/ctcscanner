@@ -743,29 +743,29 @@ if authentication_status:
                         customer_txs = concat_df[concat_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
                     if adv_search == 'Phone':  
                         customer_txs = concat_df[concat_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
-                    else:
-                        customer_txs = concat_df[concat_df["Name_C"].astype(str).str.contains(select, regex=False)]
+                else:
+                    customer_txs = concat_df[concat_df["Name_C"].astype(str).str.contains(select, regex=False)]
                         
-                    customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Name_C', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
+                customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Name_C', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
                                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                                           'Inventory', 'Fraud', 'TX_Notes', 'Wallet_Notes',
                                           'Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades']]        
-                    customer_txs = customer_txs.sort_values(by=['Control', 'TX_Date'], ascending=True)
-                    customer_txs.dropna(subset = ['Control'], inplace=True)
-                    customer_txs.set_index('Control', inplace=True)
-                    st.write(customer_txs.shape)
-                    test = customer_txs.astype(str)
-                    st.dataframe(test)
+                customer_txs = customer_txs.sort_values(by=['Control', 'TX_Date'], ascending=True)
+                customer_txs.dropna(subset = ['Control'], inplace=True)
+                customer_txs.set_index('Control', inplace=True)
+                st.write(customer_txs.shape)
+                test = customer_txs.astype(str)
+                st.dataframe(test)
 # DOWNLOAD
-                    @st.cache
-                    def convert_df_to_csv(df):
-                        return df.to_csv().encode('utf-8')
-                    st.download_button(
-                        label = 'Download as CSV',
-                        data=convert_df_to_csv(customer_txs),
-                        file_name='customer_transactions.csv',
-                        mime='text/csv',
-                        )
+                @st.cache
+                def convert_df_to_csv(df):
+                    return df.to_csv().encode('utf-8')
+                st.download_button(
+                    label = 'Download as CSV',
+                    data=convert_df_to_csv(customer_txs),
+                    file_name='customer_transactions.csv',
+                    mime='text/csv',
+                    )
 # TX_OVER_TIME
             df_melt = customer_txs.melt(id_vars = ['TX_Date'], value_vars = ['Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades'])
             fig = px.line(df_melt, x = "TX_Date", y = 'value', color = 'variable', title = "Customer Transaction Volume")
