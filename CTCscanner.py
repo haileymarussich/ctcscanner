@@ -16,12 +16,16 @@ from pandas.api.types import (
 import datetime
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.figure_factory as ff
+import plotly.graph_objects as go
 import gspread
 import pickle
 from pathlib import Path
 import streamlit_authenticator as stauth
 from streamlit_option_menu import option_menu
+
+pd.options.display.max_colwidth = 150
 
 # GOOGLE API
 SPREADSHEET_ID = "13xsnIBC0ftpS2rLKXgSbpMUztVadheV8AROnY1fiVFw"
@@ -35,7 +39,8 @@ gc = gspread.service_account(cred_file, client_factory=gspread.BackoffClient)
 
 database = gc.open("Database")
 
-sheet_names = ["TXs_22", "Customer_Database", "SAR_Log", 'BL_Addresses', 'TXs_19_20_21_22', 'TXs_16_17_18']
+sheet_names = ["TXs_22", "Customer_Database", "SAR_Log", 'BL_Addresses', 'TXs_19_20_21_22', 'TXs_16_17_18',
+               'Alert_Log', 'KYC_Checklist', 'State_Status', 'Verification_Levels']
 list_wksts = database.worksheets()
 tx_log_df1 = pd.DataFrame(database.worksheet("TXs_22").get_all_records())
 customer_database = pd.DataFrame(database.worksheet("Customer_Database").get_all_records())
@@ -43,6 +48,9 @@ SAR_log = pd.DataFrame(database.worksheet("SAR_Log").get_all_records())
 BL_addresses = pd.DataFrame(database.worksheet("BL_Addresses").get_all_records())
 tx_log_df2 = pd.DataFrame(database.worksheet("TXs_19_20_21_22").get_all_records())
 tx_log_df3 = pd.DataFrame(database.worksheet("TXs_16_17_18").get_all_records())
+
+kyc_check = pd.DataFrame(database.worksheet("KYC_Checklist").get_all_records())
+state_status = pd.DataFrame(database.worksheet("State_Status").get_all_records())
 
 # ST CONFIG
 st.set_page_config(layout="wide")
@@ -111,7 +119,7 @@ if authentication_status:
     concat_df['Received'] = concat_df.Received.astype('category')
     concat_df["Amount_Sent"] = pd.to_numeric(concat_df["Amount_Sent"], errors="coerce")
     concat_df['Asset_Sent'] = concat_df.Asset_Sent.astype('category')
-    concat_df['Sent_From'] = concat_df.Asset_Sent.astype('category')
+    concat_df['Sent_From'] = concat_df.Sent_From.astype('category')
     concat_df['Address'] = concat_df['Address'].astype('str')
     concat_df['Sent'] = concat_df.Sent.astype('category')
     concat_df["Exchange_Rate"] = pd.to_numeric(concat_df["Exchange_Rate"], errors="coerce")
@@ -188,9 +196,13 @@ if authentication_status:
     concat_df['Rolling_Crypto_Trades'] = concat_df.groupby('ID')['Rolling_Crypto_Trades'].ffill()
     concat_df["Rolling_Crypto_Trades"] = pd.to_numeric(concat_df["Rolling_Crypto_Trades"], errors="coerce")
     
-# AGG_VOLUME -- CONCAT_DF
-    concat_df["Aggregate_Volume"] = concat_df.groupby(concat_df["ID"])["Trade_Value"].transform('sum')
-    concat_df["Aggregate_Volume"] = pd.to_numeric(concat_df["Aggregate_Volume"], errors="coerce")
+# ROLLING_TOTAL -- CONCAT_DF
+    concat_df["Rolling_Total"] = concat_df.groupby(concat_df["ID"])["Trade_Value"].cumsum()
+    concat_df["Rolling_Total"] = pd.to_numeric(concat_df["Rolling_Total"], errors="coerce")
+    
+# AGG_TOTAL -- CONCAT_DF
+    concat_df["Aggregate_Total"] = concat_df.groupby(concat_df["ID"])["Trade_Value"].cumsum()
+    concat_df["Aggregate_Total"] = pd.to_numeric(concat_df["Aggregate_Total"], errors="coerce")
     
 # AVG_VOLUME -- CONCAT_DF
     concat_df['Average_Volume'] = concat_df.groupby('ID')['Trade_Value'].transform('mean')
@@ -227,7 +239,7 @@ if authentication_status:
     concat_df.loc[(concat_df['Age'] > 60), 'Risk_Rating'] = "High Risk"
     concat_df.loc[(concat_df['Age'] > 60), 'Is_FEEVA'] = "True"
     
-    concat_df['Percentile'] = concat_df['Aggregate_Volume'].rank(pct=True)
+    concat_df['Percentile'] = concat_df['Aggregate_Total'].rank(pct=True)
     concat_df["Amount_Received"] = pd.to_numeric(concat_df["Amount_Received"], errors="coerce")
     concat_df.loc[concat_df['Percentile'] > .9, 'Risk_Rating'] = "High Risk"
     concat_df.loc[concat_df['Percentile'] > .9, 'Is_High_Volume'] = "True"
@@ -325,7 +337,7 @@ if authentication_status:
 # FRAME
         tx_log_df = concat_df[['Control', 'TX_Date', 'TX_Type', 'ID', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
-                          'Inventory','Fraud', 'TX_Notes', 'Wallet_Notes', 'Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases', 
+                          'Inventory','Fraud', 'TX_Notes', 'Wallet_Notes', 'Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases',
                           'Rolling_Crypto_Trades']]
 # FILTER
         for col in tx_log_df.columns:
@@ -416,7 +428,7 @@ if authentication_status:
 # TILE AND FILE NAMES
         st.title('Aggregate Volumes')        
 # FRAME
-        agg_from_concat = concat_df[['Aggregate_Volume', 'Percentile', 'Average_Volume', 'Rolling_Crypto_Sales', 
+        agg_from_concat = concat_df[['Rolling_Total', 'Percentile', 'TX_Count', 'Average_Volume', 'Rolling_Crypto_Sales', 
                                      'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades', 'ID', 'Name_C', 'Company_Name', 'Username_C',
                                      'First_TX', 'Last_TX', 'Status', 'Risk_Rating',
                                      'Is_FEEVA', 'Is_High_Volume', 'Is_Financial_Inst', 'Is_BL_Wallet', 'Is_Shared_Wallet',
@@ -430,7 +442,7 @@ if authentication_status:
                 agg_from_concat[col] = agg_from_concat[col].round(2)
 # SORT AND INDEX
         agg_from_concat.reset_index()
-        agg_from_concat = agg_from_concat.sort_values('Percentile', ascending=False)
+        agg_from_concat = agg_from_concat.sort_values('Rolling_Total', ascending=False)
         agg_from_concat.set_index('Percentile', inplace=True)
 # PRINT
         st.write(agg_from_concat.shape)
@@ -619,11 +631,18 @@ if authentication_status:
         st.title('Customer Search')   
 # FILTER AND SORT
         concat_df = concat_df.sort_values('Last_TX', ascending=False)
+
+# INDEX AND DTYPES -- KYC_CHECK
+        state_status.index += 1
+        
+# INDEX AND DTYPES -- KYC_CHECK
+        kyc_check.set_index('Info_Needed', inplace=True)
+
 # SELECTBOX        
         customer_option = concat_df.Name_C.unique()
         select = st.selectbox("Select Customer", customer_option)
         if select == "nan":
-            st.warning("Error: Customer name unknown. Please use the radio buttons to choose another search column.")
+            st.warning("Warning: Customer name unknown. Please use the radio buttons to choose another search column.")
             adv_search = st.radio("Advanced Search", ['Company Name', 'Phone', 'Username'])
             if adv_search == 'Company Name':
                 company_names = concat_df.Company_Name.dropna().unique()
@@ -637,16 +656,17 @@ if authentication_status:
         submit = st.button("Submit")
 # FILTER2 AND CREATE DICTIONARIES
         if submit:
+            concat_df = concat_df.sort_values('Control', ascending=True)
             if select == "nan":
                 if adv_search == 'Company Name':
                     no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Company_Name'], keep='last')
                     customerdata = no_duplicates_df[no_duplicates_df["Company_Name"].astype(str).str.contains(selectcomp, regex=False)]
                 if adv_search == 'Username':
                     no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Username_C'], keep='last')
-                    customerdata = no_duplicates_df[no_duplicates_df["Username_C"].astype(str).str.contains(selectuser, regex=False)]
-                if adv_search == 'Phone':  
-                    no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Phone'], keep='last')
-                    customerdata = no_duplicates_df[no_duplicates_df["Phone"].astype(str).str.contains(selectphone, regex=False)]
+                    customerdata = no_duplicates_df[no_duplicates_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
+                if adv_search == 'Phone':
+                    no_duplicates_df = concat_df.drop_duplicates(subset=['ID' ,'Phone'], keep='last')
+                    customerdata = no_duplicates_df[no_duplicates_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
             else:
                 no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Name_C'], keep='last')
                 customerdata = no_duplicates_df[no_duplicates_df["Name_C"].astype(str).str.contains(select, regex=False)]
@@ -656,11 +676,12 @@ if authentication_status:
                 if is_numeric_dtype(customerdata[col]):
                     customerdata[col] = customerdata[col].round(2)      
             original_dict = customerdata.to_dict(orient="list")
-# CUSTOMER PROFILE   
-            st.markdown("## Profile for {} ##".format(select))
-            cust_list = ['ID', 'Username_C', 'Phone', 'Email','State', 'DOB', 'Age', 'Referral', 'Company_Name',
-                         'Company_Type', 'Cust_Notes', 'Status', 'First_TX', 'Last_TX', 'Purpose', 'Source', 
-                         'Occupation', 'Last_Review', 'Statements_Collected']           
+# CUSTOMER PROFILE
+            col1, col2 = st.columns(2)
+            c1, c2, c3, c4, c5, c6, c7 = st.columns((1, 0.1, 1.5, 0.1, 1.5, 0.1, 3))
+            col1.markdown("## Profile for {} ##".format(select))
+            cust_list = ['Status','Name_C', 'ID', 'Username_C', 'Phone', 'Email','State', 'DOB', 'Age', 'Referral']
+            cust_list2 = ['Company_Name', 'Company_Type', 'First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Last_Review', 'Statements_Collected', 'Cust_Notes']
             reordered_cust = {k: original_dict[k] for k in cust_list}
             vals = list(reordered_cust.values())
             keyz = list(reordered_cust.keys())
@@ -669,51 +690,38 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    st.markdown('**{0}** : -----'.format(key))
+                    c1.markdown('**{0}** : -----'.format(key))
                 else:
-                    st.markdown('**{0}** : {1}'.format(key, val))
+                    c1.markdown('**{0}** : {1}'.format(key, val))
                 cnt += 1
-            st.text("")
-# RISK REPORT                
-            st.markdown("### Risk Report ###")
-            risk_list = ['Review_Needed', 'Statements_Needed', 'Risk_Rating', 'Is_FEEVA', 
-                             'Is_High_Volume', 'Is_Financial_Inst',  'Is_BL_Wallet', 'Is_Shared_Wallet',
-                             'Shared_Identities', 'Shared_Names', 'Shared_Count', 'Shared_Total', 'Wallet_First_TX', 'Wallet_Last_TX']
-            reordered_dict2 = {k: original_dict[k] for k in risk_list}
+            reordered_cust2 = {k: original_dict[k] for k in cust_list2}
+            vals = list(reordered_cust2.values())
+            keyz = list(reordered_cust2.keys())
             cnt = 0
-            vals = list(reordered_dict2.values())
-            keyz = list(reordered_dict2.keys())
             for val in vals:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    st.markdown('**{0}** : -----'.format(key))
+                    c3.markdown('**{0}** : -----'.format(key))
                 else:
-                    st.markdown('**{0}** : {1}'.format(key, val))
-                cnt += 1
+                    c3.markdown('**{0}** : {1}'.format(key, val))
+                cnt += 1        
+# STATE_STATUS
+            state_expand = c5.expander("Show State Status")
+            with state_expand:
+                test = state_status.astype(str)
+                state_expand.dataframe(test)
+# KYC_CHECKLIST
+            kyc_expand = c7.expander("Show KYC Checklist")
+            with kyc_expand:
+                test = kyc_check.astype(str)
+                kyc_expand.dataframe(test)
+# TRANSACTIONS
             st.text("")
-# SAR                
-            st.markdown("### Suspicious Activity Report ###")      
-            with st.expander("Show Details"):
-                sar_list = ['SAR_ID', 'SAR_Type', 'Alert_Date', 'Prompt', 'SAR_TX_Total', 'Fraud',
-                             'Date_Filed', 'BL', 'SAR_Notes']            
-                reordered_dict3 = {k: original_dict[k] for k in sar_list}
-                vals = list(reordered_dict3.values())
-                keyz = list(reordered_dict3.keys())
-                cnt = 0
-                for val in vals:
-                    key = (keyz[cnt])
-                    val = val[0]
-                    if pd.isnull(val) == True:
-                        st.markdown('**{0}** : -----'.format(key))
-                    else:
-                        st.markdown('**{0}** : {1}'.format(key, val))
-                    cnt += 1
-            st.text("")
-# TRANSACTIONS            
-            st.markdown("### Transactions ###")
-            tx_list = ['Aggregate_Volume', 'Percentile', 'Average_Volume', 'Rolling_Crypto_Sales',
-                       'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades', 'Average_Volume', 'TX_Count']
+            c1, c2 = st.columns((1.5, 5.8))          
+            c1.markdown("### Transactions ###")
+            tx_list = ['Rolling_Total', 'Percentile', 'TX_Count', 'Average_Volume', 'Rolling_Crypto_Sales',
+                       'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades', 'Average_Volume']
             
             reordered_dict4 = {k: original_dict[k] for k in tx_list}
             vals = list(reordered_dict4.values())
@@ -723,16 +731,25 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    st.markdown('**{0}** : -----'.format(key))
+                    c1.markdown('**{0}** : -----'.format(key))
                 else:
-                    st.markdown('**{0}** : {1}'.format(key, val))
+                    c1.markdown('**{0}** : {1}'.format(key, val))
                 cnt += 1
-            st.text("")
             with st.expander("Show Transactions"):
-                customer_tx_frame = concat_df[['Control', 'TX_Date', 'TX_Type', 'ID', 'Name_C', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
-                                  'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
-                                  'Inventory', 'Fraud', 'TX_Notes', 'Wallet_Notes']]
-                customer_txs = customer_tx_frame[customer_tx_frame["Name_C"].astype(str).str.contains(select, regex=False)]
+                if select == "nan":
+                    if adv_search == 'Company Name':
+                        customer_txs = concat_df[concat_df["Company_Name"].astype(str).str.contains(selectcomp, regex=False)]
+                    if adv_search == 'Username':
+                        customer_txs = concat_df[concat_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
+                    if adv_search == 'Phone':  
+                        customer_txs = concat_df[concat_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
+                    else:
+                        customer_txs = concat_df[concat_df["Name_C"].astype(str).str.contains(select, regex=False)]
+                        
+                customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Name_C', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
+                                          'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
+                                          'Inventory', 'Fraud', 'TX_Notes', 'Wallet_Notes',
+                                          'Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades']]        
                 customer_txs = customer_txs.sort_values(by=['Control', 'TX_Date'], ascending=True)
                 customer_txs.dropna(subset = ['Control'], inplace=True)
                 customer_txs.set_index('Control', inplace=True)
@@ -749,3 +766,59 @@ if authentication_status:
                     file_name='customer_transactions.csv',
                     mime='text/csv',
                     )
+# TX_OVER_TIME
+            df_melt = customer_txs.melt(id_vars = ['TX_Date'], value_vars = ['Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades'])
+            fig = px.line(df_melt, x = "TX_Date", y = 'value', color = 'variable', title = "Customer Transaction Volume")
+            fig.update_layout(xaxis_title="Date", yaxis_title="USD")
+            c2.plotly_chart(fig)
+# RISK REPORT
+            st.text("")
+            col1, col2, col3, col4, col5 = st.columns((1, 0.1, 1.5, 0.1, 4.6))
+            c1, c2, c3, c4, c5, c6 = st.columns((1, 0.1, 1.5, 0.1, 1.5, 3.1))                
+            col1.markdown("### Risk Report ###")
+            risk_list = ['Review_Needed', 'Statements_Needed', 'Risk_Rating', 'Is_FEEVA', 
+                             'Is_High_Volume', 'Is_Financial_Inst',  'Is_BL_Wallet']
+            risk_list2 = ['Is_Shared_Wallet', 'Shared_Identities', 'Shared_Names', 'Shared_Count', 
+                          'Shared_Total', 'Wallet_First_TX', 'Wallet_Last_TX']
+            reordered_dict2 = {k: original_dict[k] for k in risk_list}
+            cnt = 0
+            vals = list(reordered_dict2.values())
+            keyz = list(reordered_dict2.keys())
+            for val in vals:
+                key = (keyz[cnt])
+                val = val[0]
+                if pd.isnull(val) == True:
+                    c1.markdown('**{0}** : -----'.format(key))
+                else:
+                    c1.markdown('**{0}** : {1}'.format(key, val))
+                cnt += 1
+            reordered_dict2a = {k: original_dict[k] for k in risk_list2}
+            cnt = 0
+            vals = list(reordered_dict2a.values())
+            keyz = list(reordered_dict2a.keys())
+            for val in vals:
+                key = (keyz[cnt])
+                val = val[0]
+                if pd.isnull(val) == True:
+                    c3.markdown('**{0}** : -----'.format(key))
+                else:
+                    c3.markdown('**{0}** : {1}'.format(key, val))
+                cnt += 1
+# SAR                
+            col5.markdown("### Suspicious Activity Report ###")
+            sar_list = ['SAR_ID', 'SAR_Type', 'Alert_Date', 'Prompt', 'SAR_TX_Total', 'Fraud',
+                             'Date_Filed', 'BL', 'SAR_Notes']            
+            reordered_dict3 = {k: original_dict[k] for k in sar_list}
+            vals = list(reordered_dict3.values())
+            keyz = list(reordered_dict3.keys())
+            cnt = 0
+            sar_expand = c5.expander("Show Details")
+            with sar_expand:
+                for val in vals:
+                    key = (keyz[cnt])
+                    val = val[0]
+                    if pd.isnull(val) == True:
+                        sar_expand.markdown('**{0}** : -----'.format(key))
+                    else:
+                        sar_expand.markdown('**{0}** : {1}'.format(key, val))
+                    cnt += 1
