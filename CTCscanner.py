@@ -678,7 +678,7 @@ if authentication_status:
             original_dict = customerdata.to_dict(orient="list")
 # CUSTOMER PROFILE
             col1, col2 = st.columns(2)
-            c1, c2, c3, c4, c5, c6, c7 = st.columns((1, 0.1, 1.5, 0.1, 1.5, 0.1, 3))
+            c1, c2, c3, c4, c5, c6, c7 = st.columns((1, 0.1, 1, 0.1, 1, 0.1, 2.5))
             col1.markdown("## Profile for {} ##".format(select))
             cust_list = ['Status','Name_C', 'ID', 'Username_C', 'Phone', 'Email','State', 'DOB', 'Age', 'Referral']
             cust_list2 = ['Company_Name', 'Company_Type', 'First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Last_Review', 'Statements_Collected', 'Cust_Notes']
@@ -690,9 +690,9 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c1.markdown('**{0}** : -----'.format(key))
+                    c1.markdown('**{0}:** -----'.format(key))
                 else:
-                    c1.markdown('**{0}** : {1}'.format(key, val))
+                    c1.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
             reordered_cust2 = {k: original_dict[k] for k in cust_list2}
             vals = list(reordered_cust2.values())
@@ -702,9 +702,9 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c3.markdown('**{0}** : -----'.format(key))
+                    c3.markdown('**{0}:** -----'.format(key))
                 else:
-                    c3.markdown('**{0}** : {1}'.format(key, val))
+                    c3.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1        
 # STATE_STATUS
             state_expand = c5.expander("Show State Status")
@@ -718,7 +718,7 @@ if authentication_status:
                 kyc_expand.dataframe(test)
 # TRANSACTIONS
             st.text("")
-            c1, c2 = st.columns((1.5, 5.8))          
+            c1, c2 = st.columns((1, 4.8))          
             c1.markdown("### Transactions ###")
             tx_list = ['Rolling_Total', 'Percentile', 'TX_Count', 'Average_Volume', 'Rolling_Crypto_Sales',
                        'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades', 'Average_Volume']
@@ -731,9 +731,9 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c1.markdown('**{0}** : -----'.format(key))
+                    c1.markdown('**{0}:** -----'.format(key))
                 else:
-                    c1.markdown('**{0}** : {1}'.format(key, val))
+                    c1.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
             with st.expander("Show Transactions"):
                 if select == "nan":
@@ -773,8 +773,8 @@ if authentication_status:
             c2.plotly_chart(fig)
 # RISK REPORT
             st.text("")
-            col1, col2, col3, col4, col5 = st.columns((1, 0.1, 1.5, 0.1, 4.6))
-            c1, c2, c3, c4, c5, c6 = st.columns((1, 0.1, 1.5, 0.1, 1.5, 3.1))                
+            col1, col2, col3, col4, col5 = st.columns((1, 0.1, 1, 0.1, 3.6))
+            c1, c2, c3, c4, c5, c6 = st.columns((1, 0.1, 1, 0.1, 1.5, 2.1))                
             col1.markdown("### Risk Report ###")
             risk_list = ['Review_Needed', 'Statements_Needed', 'Risk_Rating', 'Is_FEEVA', 
                              'Is_High_Volume', 'Is_Financial_Inst',  'Is_BL_Wallet']
@@ -788,9 +788,9 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c1.markdown('**{0}** : -----'.format(key))
+                    c1.markdown('**{0}:** -----'.format(key))
                 else:
-                    c1.markdown('**{0}** : {1}'.format(key, val))
+                    c1.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
             reordered_dict2a = {k: original_dict[k] for k in risk_list2}
             cnt = 0
@@ -800,9 +800,9 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c3.markdown('**{0}** : -----'.format(key))
+                    c3.markdown('**{0}:** -----'.format(key))
                 else:
-                    c3.markdown('**{0}** : {1}'.format(key, val))
+                    c3.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
 # SAR                
             col5.markdown("### Suspicious Activity Report ###")
@@ -818,7 +818,7 @@ if authentication_status:
                     key = (keyz[cnt])
                     val = val[0]
                     if pd.isnull(val) == True:
-                        sar_expand.markdown('**{0}** : -----'.format(key))
+                        sar_expand.markdown('**{0}:** -----'.format(key))
                     else:
-                        sar_expand.markdown('**{0}** : {1}'.format(key, val))
+                        sar_expand.markdown('**{0}:** {1}'.format(key, val))
                     cnt += 1
