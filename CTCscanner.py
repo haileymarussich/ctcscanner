@@ -25,6 +25,8 @@ from pathlib import Path
 import streamlit_authenticator as stauth
 from streamlit_option_menu import option_menu
 
+# CONFIG
+st.set_page_config(layout="wide")
 pd.options.display.max_colwidth = 150
 
 # GOOGLE API
@@ -42,18 +44,48 @@ database = gc.open("Database")
 sheet_names = ["TXs_22", "Customer_Database", "SAR_Log", 'BL_Addresses', 'TXs_19_20_21_22', 'TXs_16_17_18',
                'Alert_Log', 'KYC_Checklist', 'State_Status', 'Verification_Levels']
 list_wksts = database.worksheets()
-tx_log_df1 = pd.DataFrame(database.worksheet("TXs_22").get_all_records())
-customer_database = pd.DataFrame(database.worksheet("Customer_Database").get_all_records())
-SAR_log = pd.DataFrame(database.worksheet("SAR_Log").get_all_records())
-BL_addresses = pd.DataFrame(database.worksheet("BL_Addresses").get_all_records())
-tx_log_df2 = pd.DataFrame(database.worksheet("TXs_19_20_21_22").get_all_records())
-tx_log_df3 = pd.DataFrame(database.worksheet("TXs_16_17_18").get_all_records())
 
-kyc_check = pd.DataFrame(database.worksheet("KYC_Checklist").get_all_records())
-state_status = pd.DataFrame(database.worksheet("State_Status").get_all_records())
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data1():
+    tx_log_df1 = pd.DataFrame(database.worksheet("TXs_22").get_all_records())
+    return tx_log_df1
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data2():
+    customer_database = pd.DataFrame(database.worksheet("Customer_Database").get_all_records())
+    return customer_database
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data3():
+    SAR_log = pd.DataFrame(database.worksheet("SAR_Log").get_all_records())
+    return SAR_log
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data4():
+    BL_addresses = pd.DataFrame(database.worksheet("BL_Addresses").get_all_records())
+    return BL_addresses
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data5():
+    tx_log_df2 = pd.DataFrame(database.worksheet("TXs_19_20_21_22").get_all_records())
+    return tx_log_df2
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data6():
+    tx_log_df3 = pd.DataFrame(database.worksheet("TXs_16_17_18").get_all_records())
+    return tx_log_df3
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data7():
+    kyc_check = pd.DataFrame(database.worksheet("KYC_Checklist").get_all_records())
+    return kyc_check
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data8():
+    state_status = pd.DataFrame(database.worksheet("State_Status").get_all_records())
+    return state_status
 
-# ST CONFIG
-st.set_page_config(layout="wide")
+tx_log_df1 = load_data1()
+customer_database = load_data2()
+SAR_log = load_data3()
+BL_addresses = load_data4()
+tx_log_df2 = load_data5()
+tx_log_df3 = load_data6()
+kyc_check = load_data7()
+state_status = load_data8()
 
 # AUTHENTICATION
 names = ["Glenn Hay-Roe", "Jesse Parsons", "Hailey Marussich"]
@@ -634,9 +666,6 @@ if authentication_status:
 
 # INDEX AND DTYPES -- KYC_CHECK
         state_status.index += 1
-        
-# INDEX AND DTYPES -- KYC_CHECK
-        kyc_check.set_index('Info_Needed', inplace=True)
 
 # SELECTBOX        
         customer_option = concat_df.Name_C.unique()
