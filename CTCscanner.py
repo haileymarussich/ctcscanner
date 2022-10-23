@@ -77,15 +77,21 @@ def load_data7():
 def load_data8():
     state_status = pd.DataFrame(database.worksheet("State_Status").get_all_records())
     return state_status
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data9():
+    alert_log = pd.DataFrame(database.worksheet("Alert_Log").get_all_records())
+    return alert_log
 
 tx_log_df1 = load_data1()
-customer_database = load_data2()
-SAR_log = load_data3()
-BL_addresses = load_data4()
 tx_log_df2 = load_data5()
 tx_log_df3 = load_data6()
+customer_database = load_data2()
+SAR_log = load_data3()
+
+BL_addresses = load_data4()
 kyc_check = load_data7()
 state_status = load_data8()
+alert_log = load_data9()
 
 # AUTHENTICATION
 names = ["Glenn Hay-Roe", "Jesse Parsons", "Hailey Marussich"]
@@ -132,8 +138,9 @@ if authentication_status:
     BL_addresses = BL_addresses.replace(["^\s*$"], np.nan, regex=True)
     
 # CONCAT ALL DATA -- CONCAT_DF
-    concat_df1 = pd.merge(tx_log, customer_database, on = "ID", how = "outer", indicator = "indicator_column")
-    concat_df = pd.merge(concat_df1, SAR_log, on = "SAR_ID", how = "outer", indicator = "indicator_column2")
+    concat_df1 = pd.merge(tx_log, customer_database, on = "ID", how = "outer")
+    concat_df2 = pd.merge(concat_df1, state_status, on = "State", how = "outer")
+    concat_df = pd.merge(concat_df2, SAR_log, on = "SAR_ID", how = "outer")
     
 # CLEAN -- CONCAT_DF
     concat_df.columns = concat_df.columns.str.replace(' ', '')
@@ -172,11 +179,10 @@ if authentication_status:
     concat_df['Source'] = concat_df.Source.astype(object)
     concat_df['Occupation'] = concat_df.Occupation.astype(object)
     concat_df['Referral'] = concat_df.Referral.astype(object)
-    concat_df['Statements_Collected'] = concat_df.Statements_Collected.astype('category')
+    concat_df['Statements_Collected'] = pd.to_datetime(concat_df['Statements_Collected'])
     #
     concat_df['SAR_ID'] = concat_df.SAR_ID.astype(object)
     concat_df['Last_Review'] = pd.to_datetime(concat_df['Last_Review'])
-    concat_df['Cust_Notes'] = concat_df.Cust_Notes.astype(object)
     concat_df['SAR_Type'] = concat_df.SAR_Type.astype('category')
     concat_df['Alert_Date'] = pd.to_datetime(concat_df['Alert_Date'])
     concat_df['Prompt'] = concat_df.Prompt.astype(object)
@@ -186,6 +192,7 @@ if authentication_status:
     concat_df['Date_Filed'] = pd.to_datetime(concat_df['Date_Filed'])
     concat_df['BL'] = concat_df.BL.astype('category')
     concat_df['SAR_Notes'] = concat_df.SAR_Notes.astype(object)
+    concat_df['State_Status'] = concat_df.State_Status.astype('category')
      
 # LAST_TX -- CONCAT_DF
     concat_df['Last_TX'] = concat_df.groupby('ID')['TX_Date'].transform('max')
@@ -306,7 +313,7 @@ if authentication_status:
     concat_df['Months'] = 6
     concat_df['Last_Tx_Plus_6M'] = (concat_df['Last_TX'] + concat_df['Months'].values.astype("timedelta64[M]"))
     concat_df.loc[(concat_df['Last_Tx_Plus_6M'] < datetime.datetime.today()) &
-                  (concat_df['Status'] == 'Approved'), 
+                  (concat_df['Status'] != 'SAR') & (concat_df['Status'] != 'Pending Approval'), 
                   'Status'] = "Dormant"
     
     status_options = concat_df.Risk_Rating.unique()
@@ -326,15 +333,14 @@ if authentication_status:
     concat_df.loc[(concat_df['Risk_Rating'] == "High Risk") &
                   (concat_df['Age'] > 60) & 
                   (concat_df['Rolling_Crypto_Sales'].astype(np.float64) > 50000) &
-                  (concat_df['Statements_Collected'] == "No"),
+                  (concat_df['Statements_Collected'].isnull()),
                   'Statements_Needed'] = 'Yes'
     concat_df.loc[(concat_df['Risk_Rating'] == "High Risk") &
                   (concat_df['Age'] < 60) & 
                   (concat_df['Rolling_Crypto_Sales'].astype(np.float64) > 200000) &
-                  (concat_df['Statements_Collected'] == "No"),
+                  (concat_df['Statements_Collected'].isnull()),
                   'Statements_Needed'] = 'Yes'
     
-    concat_df['Statements_Needed'] = concat_df['Statements_Needed'].fillna("No")
     concat_df['Statements_Needed'] = concat_df.Statements_Needed.astype('category')
     
 # FILL NA -- CONCAT_DF
@@ -572,7 +578,7 @@ if authentication_status:
 # TITLE AND FILE NAMES
         st.title('All')
 # SORT AND INDEX
-        concat_df.drop(['indicator_column', 'indicator_column2', 'Months'], axis=1, inplace=True)
+        concat_df.drop(['Months'], axis=1, inplace=True)
         concat_df['Shared_Identities'] = concat_df.Shared_Identities.astype('str')
         concat_df['Shared_Names'] = concat_df.Shared_Names.astype('str')
         concat_df = concat_df.sort_values(by=['TX_Date', 'Control'], ascending=[False, False])
@@ -707,10 +713,10 @@ if authentication_status:
             original_dict = customerdata.to_dict(orient="list")
 # CUSTOMER PROFILE
             col1, col2 = st.columns(2)
-            c1, c2, c3, c4, c5, c6, c7 = st.columns((1, 0.1, 1, 0.1, 1, 0.1, 2.5))
+            c1, c2, c3, c4, c5 = st.columns((1, 0.1, 1, 0.1, 2))
             col1.markdown("## Profile for {} ##".format(select))
-            cust_list = ['Status','Name_C', 'ID', 'Username_C', 'Phone', 'Email','State', 'DOB', 'Age', 'Referral']
-            cust_list2 = ['Company_Name', 'Company_Type', 'First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Last_Review', 'Statements_Collected', 'Cust_Notes']
+            cust_list = ['Status','Name_C', 'ID', 'Username_C', 'Phone', 'Email','State', 'State_Status','DOB', 'Age']
+            cust_list2 = ['Referral', 'Company_Name', 'Company_Type', 'First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Last_Review', 'Statements_Collected']
             reordered_cust = {k: original_dict[k] for k in cust_list}
             vals = list(reordered_cust.values())
             keyz = list(reordered_cust.keys())
@@ -734,20 +740,30 @@ if authentication_status:
                     c3.markdown('**{0}:** -----'.format(key))
                 else:
                     c3.markdown('**{0}:** {1}'.format(key, val))
-                cnt += 1        
-# STATE_STATUS
-            state_expand = c5.expander("Show State Status")
-            with state_expand:
-                test = state_status.astype(str)
-                state_expand.dataframe(test)
+                cnt += 1
 # KYC_CHECKLIST
-            kyc_expand = c7.expander("Show KYC Checklist")
+            kyc_expand = c5.expander("Show KYC Checklist")
             with kyc_expand:
+                kyc_check.index += 1
                 test = kyc_check.astype(str)
                 kyc_expand.dataframe(test)
+# ALERT_LOG
+            st.text("")
+            alert_expander = st.expander("Show Alert Log")
+            with alert_expander:
+                customer_ID = reordered_cust.get('ID', 'No Key')
+                customer_ID = str(customer_ID).strip('[]')
+                alert_log['ID'] = alert_log.ID.astype('str')
+                alert_log['Date'] = pd.to_datetime(alert_log['Date']).dt.date
+                cust_alerts = alert_log[alert_log['ID'].str.contains(str(customer_ID), na=False, regex=False).groupby([alert_log['Alert_ID']]).transform('any')]
+                cust_alerts = cust_alerts.sort_values('Date', ascending=True)
+                cust_alerts.set_index('Date', inplace=True)
+                test = cust_alerts.astype(str)
+                alert_expander.dataframe(test)
+
 # TRANSACTIONS
             st.text("")
-            c1, c2 = st.columns((1, 4.8))          
+            c1, c2 = st.columns((1, 3.2))          
             c1.markdown("### Transactions ###")
             tx_list = ['Rolling_Total', 'Percentile', 'TX_Count', 'Average_Volume', 'Rolling_Crypto_Sales',
                        'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades', 'Average_Volume']
@@ -802,8 +818,8 @@ if authentication_status:
             c2.plotly_chart(fig)
 # RISK REPORT
             st.text("")
-            col1, col2, col3, col4, col5 = st.columns((1, 0.1, 1, 0.1, 3.6))
-            c1, c2, c3, c4, c5, c6 = st.columns((1, 0.1, 1, 0.1, 1.5, 2.1))                
+            col1, col2, col3, col4, col5 = st.columns((1, 0.1, 1, 0.1, 2))
+            c1, c2, c3, c4, c5 = st.columns((1, 0.1, 1, 0.1, 2))                
             col1.markdown("### Risk Report ###")
             risk_list = ['Review_Needed', 'Statements_Needed', 'Risk_Rating', 'Is_FEEVA', 
                              'Is_High_Volume', 'Is_Financial_Inst',  'Is_BL_Wallet']
