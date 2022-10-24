@@ -312,9 +312,16 @@ if authentication_status:
 # "DORMANT" STATUS -- CONCAT_DF
     concat_df['Months'] = 6
     concat_df['Last_Tx_Plus_6M'] = (concat_df['Last_TX'] + concat_df['Months'].values.astype("timedelta64[M]"))
+    concat_df['Last_Review_Plus_6M'] = (concat_df['Last_Review'] + concat_df['Months'].values.astype("timedelta64[M]"))
     concat_df.loc[(concat_df['Last_Tx_Plus_6M'] < datetime.datetime.today()) &
-                  (concat_df['Status'] != 'SAR') & (concat_df['Status'] != 'Pending Approval'), 
+                  (concat_df['Last_Review_Plus_6M'] < datetime.datetime.today()) &
+                  (concat_df['Status'] != 'SAR'),
                   'Status'] = "Dormant"
+    
+# "APPROVED, BUT NEVER TRADED" -- CONCAT_DF
+    concat_df.loc[(concat_df['Status'].astype(str).str.contains("Approved")) &
+                  (concat_df['TX_Count'] == 0),
+                  'Status'] = "Approved, but never traded"
     
     status_options = concat_df.Risk_Rating.unique()
     concat_df['Status'] = concat_df.Status.astype('category')
