@@ -329,7 +329,7 @@ if authentication_status:
     
 # REVIEW NEEDED -- CONCAT_DF 
     concat_df.loc[(concat_df['Risk_Rating'] == "High Risk") &
-                  ((concat_df['Last_Review_Plus_6M'] + datetime.datetime.today()) |
+                  ((concat_df['Last_Review_Plus_6M'] < datetime.datetime.today()) |
                    (concat_df['Last_Review'].isnull())), 
                   'Review_Needed'] = 'Yes'
     concat_df.loc[(concat_df['Status'] == "Dormant"),
