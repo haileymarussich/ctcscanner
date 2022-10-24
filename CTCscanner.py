@@ -332,7 +332,7 @@ if authentication_status:
                   ((concat_df['Last_Review_Plus_6M'] < datetime.datetime.today()) |
                    (concat_df['Last_Review'].isnull())), 
                   'Review_Needed'] = 'Yes'
-    concat_df.loc[(concat_df['Status'] == "Dormant") &
+    concat_df.loc[(concat_df['Status'] == "Dormant"),
                   'Review_Needed'] = 'Yes'
     concat_df.loc[(concat_df['Status'] == "Approved, but never traded") &
                   ((concat_df['Last_Review_Plus_6M'] < datetime.datetime.today()) |
