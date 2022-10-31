@@ -908,7 +908,7 @@ if authentication_status:
                 customer_txs = customer_txs.sort_values(by=['Control', 'TX_Date'], ascending=True)
                 customer_txs.dropna(subset = ['Control'], inplace=True)
                 customer_txs.set_index('Control', inplace=True)
-                customer_txs.drop('Name_C', inplace=True)
+                customer_txs.drop(['Name_C'], axis=1)
                 customer_txs['Entity_ID'].replace("missing", np.nan, inplace=True)
                 st.write(customer_txs.shape)
                 test = customer_txs.astype(str)
