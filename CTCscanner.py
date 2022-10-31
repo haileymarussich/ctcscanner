@@ -32,16 +32,12 @@ pd.options.display.max_colwidth = 150
 # GOOGLE API
 SPREADSHEET_ID = "13xsnIBC0ftpS2rLKXgSbpMUztVadheV8AROnY1fiVFw"
 GSHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}"
-
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
          "https://www.googleapis.com/auth/drive"]
-
 cred_file = "service_account.json"
 gc = gspread.service_account(cred_file, client_factory=gspread.BackoffClient)
-
 database = gc.open("Database")
-
-sheet_names = ["TXs_22", "Customer_Database", "SAR_Log", 'BL_Addresses', 'TXs_19_20_21_22', 'TXs_16_17_18',
+sheet_names = ["TXs_22", "Customer_Database", "Entity_Database", "SAR_Log", 'BL_Addresses', 'TXs_19_20_21_22', 'TXs_16_17_18',
                'Alert_Log', 'KYC_Checklist', 'State_Status', 'Verification_Levels']
 list_wksts = database.worksheets()
 
@@ -81,13 +77,17 @@ def load_data8():
 def load_data9():
     alert_log = pd.DataFrame(database.worksheet("Alert_Log").get_all_records())
     return alert_log
+@st.cache(allow_output_mutation=True, ttl=60*60)
+def load_data10():
+    entity_database = pd.DataFrame(database.worksheet("Entity_Database").get_all_records())
+    return entity_database
 
 tx_log_df1 = load_data1()
 tx_log_df2 = load_data5()
 tx_log_df3 = load_data6()
 customer_database = load_data2()
+entity_database = load_data10()
 SAR_log = load_data3()
-
 BL_addresses = load_data4()
 kyc_check = load_data7()
 state_status = load_data8()
@@ -119,7 +119,7 @@ if authentication_status:
                        'Aggregate Volumes', 
                        'Shared Wallets',
                        'Blacklisted Addresses',
-                       'Transactions', 'Customer Database', 'All'])
+                       'Transactions', 'Customer Database', 'Entity Database', 'All'])
     authenticator.logout("Logout", "sidebar")
     
 # CONCAT AND CLEAN -- TX_LOG
@@ -127,20 +127,47 @@ if authentication_status:
     tx_log.columns = tx_log.columns.str.strip()
     tx_log = tx_log.replace(["^\s*$"], np.nan, regex=True)
     
-# CLEAN -- CUSTOMER_DATABASE
+# CONCAT AND CLEAN -- CUSTOMER_DATABASE
     customer_database = customer_database.replace(["^\s*$"], np.nan, regex=True)
-    tx_log.customer_database = customer_database.columns.str.strip()
+    customer_database.columns = customer_database.columns.str.strip()
     
-# CLEAN -- SAR_LOG 
+    customer_database = pd.merge(customer_database, entity_database[['ID', 'Entity_ID', 'Entity_Name', 'Entity_Type']], on = "ID", how = "outer")
+    customer_database['Entity_Count'] = customer_database.groupby("ID")['Entity_ID'].transform('count')
+    customer_database["Entity_Count"] = pd.to_numeric(customer_database["Entity_Count"], errors="coerce")
+    
+    customer_database['Entity_ID_List'] = customer_database.groupby('ID')['Entity_ID'].transform(lambda x: [x.unique()]*len(x))
+    customer_database['Entity_ID_List'] = customer_database.Entity_ID_List.astype('str')
+    customer_database['Entity_ID_List'] = customer_database['Entity_ID_List'].replace("[nan]", np.nan)
+    customer_database['Entity_ID_List'] = customer_database.Entity_ID_List.astype(object)
+    
+    customer_database['Entity_N_List'] = customer_database.groupby('ID')['Entity_Name'].transform(lambda x: [x.unique()]*len(x))
+    customer_database['Entity_N_List'] = customer_database.Entity_N_List.astype('str')
+    customer_database['Entity_N_List'] = customer_database['Entity_N_List'].replace("[nan]", np.nan)
+    customer_database['Entity_N_List'] = customer_database.Entity_N_List.astype(object)
+    
+    customer_database['Entity_T_List'] = customer_database.groupby('ID')['Entity_Type'].transform(lambda x: [x.unique()]*len(x))
+    customer_database['Entity_T_List'] = customer_database.Entity_T_List.astype('str')
+    customer_database['Entity_T_List'] = customer_database['Entity_T_List'].replace("[nan]", np.nan)
+    customer_database['Entity_T_List'] = customer_database.Entity_T_List.astype(object)
+    
+    customer_database.drop_duplicates(subset=['ID'], keep="last", inplace=True)
+    customer_database.drop(['Entity_ID', 'Entity_Name', 'Entity_Type'], axis=1, inplace=True)
+    
+# CLEAN -- ENTITY_DATABASE
+    entity_database = entity_database.replace(["^\s*$"], np.nan, regex=True)
+    entity_database.columns = entity_database.columns.str.strip()
+    
+# CLEAN -- SAR_LOG
     SAR_log = SAR_log.replace(["^\s*$"], np.nan, regex=True)
     
-# CLEAN -- BL_ADDRESSES 
+# CLEAN -- BL_ADDRESSES
     BL_addresses = BL_addresses.replace(["^\s*$"], np.nan, regex=True)
     
 # CONCAT ALL DATA -- CONCAT_DF
     concat_df1 = pd.merge(tx_log, customer_database, on = "ID", how = "outer")
-    concat_df2 = pd.merge(concat_df1, state_status, on = "State", how = "outer")
-    concat_df = pd.merge(concat_df2, SAR_log, on = "SAR_ID", how = "outer")
+    concat_df2 = pd.merge(concat_df1, entity_database[['Entity_ID', 'Entity_Name', 'Entity_Type']], on = "Entity_ID", how = "left")
+    concat_df3 = pd.merge(concat_df2, state_status, on = "State", how = "left")
+    concat_df = pd.merge(concat_df3, SAR_log, on = "SAR_ID", how = "left")
     
 # CLEAN -- CONCAT_DF
     concat_df.columns = concat_df.columns.str.replace(' ', '')
@@ -150,6 +177,7 @@ if authentication_status:
     concat_df["Control"] = pd.to_numeric(concat_df["Control"], downcast='integer', errors="coerce")
     concat_df['TX_Date'] = pd.to_datetime(concat_df['TX_Date'])
     concat_df['ID'] = concat_df['ID'].values.astype(object)
+    concat_df['Entity_ID'] = concat_df['Entity_ID'].values.astype(object)
     concat_df['Name_T'] = concat_df['Name_T'].values.astype(object)
     concat_df['Username'] = concat_df['Username'].values.astype('str')
     concat_df["Amount_Received"] = pd.to_numeric(concat_df["Amount_Received"], errors="coerce")
@@ -167,10 +195,11 @@ if authentication_status:
     concat_df["Fraud"] = pd.to_numeric(concat_df["Fraud"], errors="coerce")
     concat_df['TX_Notes'] = concat_df.TX_Notes.astype(object)
     concat_df['Wallet_Notes'] = concat_df.Wallet_Notes.astype(object)
-    concat_df['Name_C'] = concat_df.Name_C.astype('str')
+    concat_df['Name_C'] = concat_df.Name_C.astype(object)
     concat_df['Username_C'] = concat_df.Username_C.astype(object)
-    concat_df['Company_Name'] = concat_df.Company_Name.astype(object)
-    concat_df['Company_Type'] = concat_df.Company_Type.astype('category')
+    concat_df['Entity_Name'] = concat_df.Entity_Name.astype(object)
+    concat_df['Entity_Type'] = concat_df.Entity_Type.astype('category')
+    concat_df['Owns_Entity'] = concat_df.Entity_Type.astype('category')
     concat_df['State'] = concat_df.State.astype('category')
     concat_df['DOB'] = pd.to_datetime(concat_df['DOB'])
     concat_df['Phone'] = concat_df.Phone.astype(object)
@@ -182,6 +211,7 @@ if authentication_status:
     concat_df['Statements_Collected'] = pd.to_datetime(concat_df['Statements_Collected'])
     #
     concat_df['SAR_ID'] = concat_df.SAR_ID.astype(object)
+    concat_df['Folder_Created'] = concat_df.Folder_Created.astype('category')
     concat_df['Last_Review'] = pd.to_datetime(concat_df['Last_Review'])
     concat_df['SAR_Type'] = concat_df.SAR_Type.astype('category')
     concat_df['Alert_Date'] = pd.to_datetime(concat_df['Alert_Date'])
@@ -193,13 +223,15 @@ if authentication_status:
     concat_df['BL'] = concat_df.BL.astype('category')
     concat_df['SAR_Notes'] = concat_df.SAR_Notes.astype(object)
     concat_df['State_Status'] = concat_df.State_Status.astype('category')
-     
+    
+    concat_df['Entity_ID'].fillna("missing", inplace=True)
+ 
 # LAST_TX -- CONCAT_DF
-    concat_df['Last_TX'] = concat_df.groupby('ID')['TX_Date'].transform('max')
+    concat_df['Last_TX'] = concat_df.groupby(['ID', 'Entity_ID'])['TX_Date'].transform('max')
     concat_df['Last_TX'] = pd.to_datetime(concat_df['Last_TX'])
     
 # FIRST_TX -- CONCAT_DF
-    concat_df['First_TX'] = concat_df.groupby('ID')['TX_Date'].transform('min')
+    concat_df['First_TX'] = concat_df.groupby(['ID', 'Entity_ID'])['TX_Date'].transform('min')
     concat_df['First_TX'] = pd.to_datetime(concat_df['First_TX'])
     
 # TX_TYPE -- CONCAT_DF
@@ -218,37 +250,42 @@ if authentication_status:
                   'TX_Type'] = 'Crypto Trade'
     concat_df.loc[(concat_df['TX_Notes'].astype(str).str.contains("Commission")), 'TX_Type'] = "Commission"
     concat_df.loc[(concat_df['TX_Notes'].astype(str).str.contains("Referral")), 'TX_Type'] = "Referral"
+    concat_df.loc[(concat_df['Control'].isnull()), 'TX_Type'] = "None"
     concat_df.loc[(concat_df['TX_Type'].isnull()), 'TX_Type'] = "Uncategorized"
     
 # CRYPTO_SALES -- CONCAT_DF
-    concat_df['Rolling_Crypto_Sales'] = concat_df['Trade_Value'].where(concat_df['TX_Type'] == "Crypto Sale").groupby(concat_df['ID']).transform(lambda x: x.cumsum())
-    concat_df['Rolling_Crypto_Sales'] = concat_df.groupby('ID')['Rolling_Crypto_Sales'].ffill()
+    concat_df['Rolling_Crypto_Sales'] = concat_df.where(concat_df.TX_Type == "Crypto Sale").groupby(
+        ['ID', 'Entity_ID'])['Trade_Value'].cumsum()
+    concat_df['Rolling_Crypto_Sales'] = concat_df.groupby(['ID', 'Entity_ID'])['Rolling_Crypto_Sales'].ffill()
     concat_df["Rolling_Crypto_Sales"] = pd.to_numeric(concat_df["Rolling_Crypto_Sales"], errors="coerce")
 
-# CRYPTO_PURCHASES -- CONCAT_DF
-    concat_df['Rolling_Crypto_Purchases'] = concat_df['Trade_Value'].where(concat_df['TX_Type'] == "Crypto Purchase").groupby(concat_df['ID']).transform(lambda x: x.cumsum())
-    concat_df['Rolling_Crypto_Purchases'] = concat_df.groupby('ID')['Rolling_Crypto_Purchases'].ffill()
+# CRYPTO_PURCHASES -- CONCAT_DF  
+    concat_df['Rolling_Crypto_Purchases'] = concat_df.where(concat_df.TX_Type == "Crypto Purchase").groupby(
+        ['ID', 'Entity_ID'])['Trade_Value'].cumsum()
+    concat_df['Rolling_Crypto_Purchases'] = concat_df.groupby(['ID', 'Entity_ID'])['Rolling_Crypto_Purchases'].ffill()
     concat_df["Rolling_Crypto_Purchases"] = pd.to_numeric(concat_df["Rolling_Crypto_Purchases"], errors="coerce")
     
 # CRYPTO_TRADES -- CONCAT_DF
-    concat_df['Rolling_Crypto_Trades'] = concat_df['Trade_Value'].where(concat_df['TX_Type'] == "Crypto Trade").groupby(concat_df['ID']).transform(lambda x: x.cumsum())
-    concat_df['Rolling_Crypto_Trades'] = concat_df.groupby('ID')['Rolling_Crypto_Trades'].ffill()
+    concat_df['Rolling_Crypto_Trades'] = concat_df.where(concat_df.TX_Type == "Crypto Trade").groupby(
+        ['ID', 'Entity_ID'])['Trade_Value'].cumsum()
+    concat_df['Rolling_Crypto_Trades'] = concat_df.groupby(['ID', 'Entity_ID'])['Rolling_Crypto_Trades'].ffill()
     concat_df["Rolling_Crypto_Trades"] = pd.to_numeric(concat_df["Rolling_Crypto_Trades"], errors="coerce")
     
 # ROLLING_TOTAL -- CONCAT_DF
-    concat_df["Rolling_Total"] = concat_df.groupby(concat_df["ID"])["Trade_Value"].cumsum()
+    concat_df["Rolling_Total"] = concat_df.groupby(["ID", "Entity_ID"])["Trade_Value"].cumsum()
+    concat_df['Rolling_Total'] = concat_df.groupby(['ID', 'Entity_ID'])['Rolling_Total'].ffill()
     concat_df["Rolling_Total"] = pd.to_numeric(concat_df["Rolling_Total"], errors="coerce")
     
 # AGG_TOTAL -- CONCAT_DF
-    concat_df["Aggregate_Total"] = concat_df.groupby(concat_df["ID"])["Trade_Value"].cumsum()
+    concat_df["Aggregate_Total"] = concat_df.groupby(["ID", 'Entity_ID'])["Trade_Value"].transform('sum')
     concat_df["Aggregate_Total"] = pd.to_numeric(concat_df["Aggregate_Total"], errors="coerce")
     
 # AVG_VOLUME -- CONCAT_DF
-    concat_df['Average_Volume'] = concat_df.groupby('ID')['Trade_Value'].transform('mean')
+    concat_df['Average_Volume'] = concat_df.groupby(['ID', 'Entity_ID'])['Trade_Value'].transform('mean')
     concat_df["Average_Volume"] = pd.to_numeric(concat_df["Average_Volume"], errors="coerce")
     
 # TX_COUNT -- CONCAT_DF
-    concat_df['TX_Count'] = concat_df.groupby('ID')['Trade_Value'].transform('count')
+    concat_df['TX_Count'] = concat_df.groupby(['ID', 'Entity_ID'])['Trade_Value'].transform('count')
     concat_df["TX_Count"] = pd.to_numeric(concat_df["TX_Count"], errors="coerce")
     
 # SHARED_WALLETS -- CONCAT_DF AND SHARED_WALLETS_DF
@@ -279,12 +316,12 @@ if authentication_status:
     concat_df.loc[(concat_df['Age'] > 60), 'Is_FEEVA'] = "True"
     
     concat_df['Percentile'] = concat_df['Aggregate_Total'].rank(pct=True)
-    concat_df["Amount_Received"] = pd.to_numeric(concat_df["Amount_Received"], errors="coerce")
     concat_df.loc[concat_df['Percentile'] > .9, 'Risk_Rating'] = "High Risk"
     concat_df.loc[concat_df['Percentile'] > .9, 'Is_High_Volume'] = "True"
     
-    concat_df.loc[concat_df['Company_Type'] == "Financial Institution", 'Risk_Rating'] = "High Risk"
-    concat_df.loc[concat_df['Company_Type'] == "Financial Institution", 'Is_Financial_Inst'] = "True"
+    concat_df['Is_Financial_Inst'] = concat_df['Entity_T_List'].str.contains('FI', na=False)
+    concat_df['Is_Financial_Inst'] = concat_df['Is_Financial_Inst'].replace(False, np.nan, inplace=True)
+    concat_df.loc[concat_df['Is_Financial_Inst'] == "True", 'Risk_Rating'] = "High Risk"
     
     watchlist = BL_addresses.Address.values.tolist()
     watchlist_regex = '|'.join(watchlist)
@@ -339,7 +376,6 @@ if authentication_status:
                    (concat_df['Last_Review'].isnull())),
                   'Review_Needed'] = 'Yes'
     
-    concat_df['Review_Needed'] = concat_df['Review_Needed'].fillna("No")
     concat_df['Review_Needed'] = concat_df.Review_Needed.astype('category')
     
 # STATEMENTS_NEEDED -- CONCAT_DF
@@ -386,7 +422,7 @@ if authentication_status:
     #        notes = right.text_input("Transaction Notes")
     #        submitted = st.form_submit_button(label="Submit")
 # FRAME
-        tx_log_df = concat_df[['Control', 'TX_Date', 'TX_Type', 'ID', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
+        tx_log_df = concat_df[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                           'Inventory','Fraud', 'TX_Notes', 'Wallet_Notes', 'Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases',
                           'Rolling_Crypto_Trades']]
@@ -400,6 +436,7 @@ if authentication_status:
         tx_log_df = tx_log_df.sort_values(['TX_Date', 'Control'], ascending=[False, False])
         tx_log_df.reset_index()
         tx_log_df.set_index('Control', inplace=True)
+        tx_log_df['Entity_ID'].replace("missing", np.nan, inplace=True)
 # PRINT
         st.write(tx_log_df.shape)
         test = tx_log_df.astype(str)
@@ -448,7 +485,6 @@ if authentication_status:
         cust_columns.extend(['Risk_Rating', 'Review_Needed', 'Statements_Needed', 'First_TX', 'Last_TX', 'TX_Count'])
         customer_database_df = concat_df[cust_columns]
 # FILTER
-        customer_database_df.drop_duplicates(subset=['ID'], keep="last", inplace=True)
         for col in customer_database_df.columns:
             if is_datetime64_any_dtype(customer_database_df[col]):
                 customer_database_df[col] = pd.to_datetime(customer_database_df[col]).dt.date
@@ -457,9 +493,10 @@ if authentication_status:
 # SORT AND INDEX
         customer_database_df = customer_database_df.sort_values('Last_Review', ascending=False)
         customer_database_df.reset_index()
-        customer_database_df.set_index('Name_C', inplace=True)
+        customer_database_df.set_index('ID', inplace=True)
+        customer_database_df.index = customer_database_df.index.astype('str')
 # PRINT
-        st.write(customer_database_df.shape)   
+        st.write(customer_database_df.shape)
         test = customer_database_df.astype(str)
         st.dataframe(test)
         #AgGrid(customer_database_df, key = 'customers', editable = True, fit_columns_on_grid_load = True)          
@@ -473,6 +510,45 @@ if authentication_status:
             file_name='all_customers',
             mime='text/csv',
             )
+        
+# ENTITY DATABASE PAGE -------------------------------------------------------------------------------------------------------------
+    if selected == 'Entity Database':
+# TILE AND FILE NAMES
+        st.title('Entity Database')
+# FRAME
+        ent_columns = list(entity_database.columns.unique())
+        ent_columns.remove('Name_E')
+        ent_columns.remove('Username_E')
+        ent_columns.extend(['Name_C', 'Username_C', 'Risk_Rating', 'Review_Needed', 'Statements_Needed', 'First_TX', 'Last_TX', 'TX_Count'])
+        ent_database_df = concat_df[ent_columns]
+# FILTER
+        ent_database_df['Entity_ID'].replace("missing", np.nan, inplace=True)
+        ent_database_df.drop_duplicates(subset=['Entity_ID'], keep="last", inplace=True)
+        ent_database_df.dropna(subset=['Entity_ID'], inplace=True)
+        for col in ent_database_df.columns:
+            if is_datetime64_any_dtype(ent_database_df[col]):
+                ent_database_df[col] = pd.to_datetime(ent_database_df[col]).dt.date
+            if is_numeric_dtype(ent_database_df[col]):
+                ent_database_df[col] = ent_database_df[col].round(2)
+# SORT AND INDEX
+        ent_database_df = ent_database_df.sort_values('Last_TX', ascending=False)
+        ent_database_df.reset_index()
+        ent_database_df.set_index('ID', inplace=True)
+        ent_database_df.index = ent_database_df.index.astype('str')
+# PRINT
+        st.write(ent_database_df.shape)   
+        test = ent_database_df.astype(str)
+        st.dataframe(test)    
+# DOWNLOAD
+        @st.cache
+        def convert_df_to_csv(df):
+            return df.to_csv().encode('utf-8')
+        st.download_button(
+            label = 'Download as CSV',
+            data=convert_df_to_csv(ent_database_df),
+            file_name='all_entities',
+            mime='text/csv',
+            )
                      
 # AGGREGATE VOLUME PAGE -------------------------------------------------------------------------------------------------------------
     if selected == 'Aggregate Volumes':
@@ -480,12 +556,12 @@ if authentication_status:
         st.title('Aggregate Volumes')        
 # FRAME
         agg_from_concat = concat_df[['Rolling_Total', 'Percentile', 'TX_Count', 'Average_Volume', 'Rolling_Crypto_Sales', 
-                                     'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades', 'ID', 'Name_C', 'Company_Name', 'Username_C',
+                                     'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades', 'ID', 'Name_C', 'Entity_ID','Entity_Name', 'Username_C',
                                      'First_TX', 'Last_TX', 'Status', 'Risk_Rating',
                                      'Is_FEEVA', 'Is_High_Volume', 'Is_Financial_Inst', 'Is_BL_Wallet', 'Is_Shared_Wallet',
-                                     'Statements_Needed', 'Review_Needed', 'Cust_Notes']]
+                                     'Statements_Needed', 'Review_Needed']]
 # FILTER
-        agg_from_concat.drop_duplicates(subset=['ID'], keep="last", inplace=True)
+        agg_from_concat.drop_duplicates(subset=['ID', 'Entity_ID'], keep="last", inplace=True)
         for col in agg_from_concat.columns:
             if is_datetime64_any_dtype(agg_from_concat[col]):
                 agg_from_concat[col] = pd.to_datetime(agg_from_concat[col]).dt.date
@@ -495,6 +571,7 @@ if authentication_status:
         agg_from_concat.reset_index()
         agg_from_concat = agg_from_concat.sort_values('Rolling_Total', ascending=False)
         agg_from_concat.set_index('Percentile', inplace=True)
+        agg_from_concat['Entity_ID'].replace("missing", np.nan, inplace=True)
 # PRINT
         st.write(agg_from_concat.shape)
         test = agg_from_concat.astype(str)
@@ -540,7 +617,7 @@ if authentication_status:
 # TILE AND FILE NAMES
         st.title('Blacklisted Addresses')   
 # FRAME
-        ofac_from_concat = concat_df[['Address', 'Is_BL_Wallet', 'ID', 'Name_C', 'Company_Name', 'First_TX', 'Last_TX', 'Status', 'Cust_Notes']]
+        ofac_from_concat = concat_df[['Address', 'Is_BL_Wallet', 'ID', 'Name_C', 'Entity_ID', 'Entity_Name', 'First_TX', 'Last_TX', 'Status']]
 # FILTER
         ofac_from_concat = ofac_from_concat.loc[(ofac_from_concat['Is_BL_Wallet'] == 'True')]
         ofac_from_concat.drop_duplicates(subset=['Address'], keep="last", inplace=True)
@@ -552,6 +629,7 @@ if authentication_status:
 # SORT AND INDEX 
         ofac_from_concat.sort_values('Last_TX', ascending=False, inplace=True)
         ofac_from_concat.set_index('Address', inplace=True)
+        ofac_from_concat['Entity_ID'].replace("missing", np.nan, inplace=True)
 # PRINT
         st.write(ofac_from_concat.shape)
         test = ofac_from_concat.astype(str)
@@ -594,8 +672,12 @@ if authentication_status:
         concat_df.drop(['Months'], axis=1, inplace=True)
         concat_df['Shared_Identities'] = concat_df.Shared_Identities.astype('str')
         concat_df['Shared_Names'] = concat_df.Shared_Names.astype('str')
+        concat_df['Entity_ID_List'] = concat_df.Shared_Names.astype('str')
+        concat_df['Entity_N_List'] = concat_df.Shared_Names.astype('str')
+        concat_df['Entity_T_List'] = concat_df.Shared_Names.astype('str')
         concat_df = concat_df.sort_values(by=['TX_Date', 'Control'], ascending=[False, False])
         concat_df.set_index('Control', inplace=True)
+        concat_df['Entity_ID'].replace("missing", np.nan, inplace=True)
 # DEFINE DF
         def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             display = st.radio("Display", ("All Columns", "User Selected Columns"), key = "display")
@@ -682,54 +764,64 @@ if authentication_status:
         st.title('Customer Search')   
 # FILTER AND SORT
         concat_df = concat_df.sort_values('Last_TX', ascending=False)
-
-# INDEX AND DTYPES -- KYC_CHECK
-        state_status.index += 1
-
 # SELECTBOX        
-        customer_option = concat_df.Name_C.unique()
-        select = st.selectbox("Select Customer", customer_option)
-        if select == "nan":
-            st.warning("Warning: Customer name unknown. Please use the radio buttons to choose another search column.")
-            adv_search = st.radio("Advanced Search", ['Company Name', 'Phone', 'Username'])
-            if adv_search == 'Company Name':
-                company_names = concat_df.Company_Name.dropna().unique()
-                selectcomp = st.selectbox("Company", company_names)
-            if adv_search == 'Username':
-                usernames = concat_df.Username_C.dropna().unique()
-                selectuser = st.selectbox("Username", usernames)
-            if adv_search == 'Phone':
-                phones = concat_df.Phone.dropna().unique()
-                selectphone = st.selectbox("Phone", phones)
+        search_by = st.radio("Search", ['Customer', 'Entity', 'Username', 'Phone'])
+        if search_by == "Customer":
+            customer_option = concat_df.Name_C.dropna().unique()
+            cust_select = st.selectbox("Select Customer", customer_option)
+        if search_by == 'Username':
+            usernames = concat_df.Username_C.dropna().unique()
+            selectuser = st.selectbox("Username", usernames)
+        if search_by == 'Phone':
+            phones = concat_df.Phone.dropna().unique()
+            selectphone = st.selectbox("Phone", phones)
+        if search_by == "Entity":
+            entity_option = concat_df.Entity_Name.dropna().unique()
+            ent_select = st.selectbox("Select Entity", entity_option)
         submit = st.button("Submit")
 # FILTER2 AND CREATE DICTIONARIES
         if submit:
             concat_df = concat_df.sort_values('Control', ascending=True)
-            if select == "nan":
-                if adv_search == 'Company Name':
-                    no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Company_Name'], keep='last')
-                    customerdata = no_duplicates_df[no_duplicates_df["Company_Name"].astype(str).str.contains(selectcomp, regex=False)]
-                if adv_search == 'Username':
-                    no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Username_C'], keep='last')
-                    customerdata = no_duplicates_df[no_duplicates_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
-                if adv_search == 'Phone':
-                    no_duplicates_df = concat_df.drop_duplicates(subset=['ID' ,'Phone'], keep='last')
-                    customerdata = no_duplicates_df[no_duplicates_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
-            else:
-                no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Name_C'], keep='last')
-                customerdata = no_duplicates_df[no_duplicates_df["Name_C"].astype(str).str.contains(select, regex=False)]
+            if search_by == "Customer":
+                no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Entity_ID'], keep='last')
+                customerdata = no_duplicates_df[(no_duplicates_df.Entity_ID == "missing") &
+                        no_duplicates_df["Name_C"].astype(str).str.contains(cust_select, regex=False)]
+            if search_by == 'Username':
+                no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Username_C'], keep='last')
+                customerdata = no_duplicates_df[no_duplicates_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
+            if search_by == 'Phone':
+                no_duplicates_df = concat_df.drop_duplicates(subset=['ID' ,'Phone'], keep='last')
+                customerdata = no_duplicates_df[no_duplicates_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
+            if search_by == "Entity":
+                no_duplicates_df = concat_df.drop_duplicates(subset=['ID', 'Entity_ID'], keep='last')
+                customerdata = no_duplicates_df[no_duplicates_df["Entity_Name"].astype(str).str.contains(ent_select, regex=False)]
             for col in customerdata.columns:
                 if is_datetime64_any_dtype(customerdata[col]):
                     customerdata[col] = pd.to_datetime(customerdata[col]).dt.date
                 if is_numeric_dtype(customerdata[col]):
-                    customerdata[col] = customerdata[col].round(2)      
+                    customerdata[col] = customerdata[col].round(2)
+            customerdata['Entity_ID'].replace("missing", np.nan, inplace=True)
             original_dict = customerdata.to_dict(orient="list")
-# CUSTOMER PROFILE
+# CUSTOMER PROFILE -- FILTER
             col1, col2 = st.columns(2)
             c1, c2, c3, c4, c5 = st.columns((1, 0.1, 1, 0.1, 2))
-            col1.markdown("## Profile for {} ##".format(select))
-            cust_list = ['Status','Name_C', 'ID', 'Username_C', 'Phone', 'Email','State', 'State_Status','DOB', 'Age']
-            cust_list2 = ['Referral', 'Company_Name', 'Company_Type', 'First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Last_Review', 'Statements_Collected']
+            if search_by == "Entity":
+                col1.markdown("## Profile for {} ##".format(ent_select))
+                cust_list = ['Status', 'Entity_Name', 'Entity_ID', 'Entity_Type', 'Name_C', 'Username_C', 'ID', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list2 = ['DOB', 'Age', 'Referral', 'First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Created', 'Statements_Collected', 'Last_Review']
+            if search_by == "Customer":
+                col1.markdown("## Profile for {} ##".format(cust_select))
+                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'Entity_ID_List', 'Entity_N_List', 'Entity_T_List', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Created', 'Statements_Collected', 'Last_Review']
+            if search_by == "Username":
+                col1.markdown("## Profile for {} ##".format(selectuser))
+                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'Entity_ID_List', 'Entity_N_List', 'Entity_T_List', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Created', 'Statements_Collected', 'Last_Review']
+            if search_by == "Phone":
+                col1.markdown("## Profile for {} ##".format(selectphone))
+                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'Entity_ID_List', 'Entity_N_List', 'Entity_T_List', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Created', 'Statements_Collected', 'Last_Review']
+# CUSTOMER PROFILE -- PRINT
             reordered_cust = {k: original_dict[k] for k in cust_list}
             vals = list(reordered_cust.values())
             keyz = list(reordered_cust.keys())
@@ -757,7 +849,6 @@ if authentication_status:
 # KYC_CHECKLIST
             kyc_expand = c5.expander("Show KYC Checklist")
             with kyc_expand:
-                kyc_check.index += 1
                 test = kyc_check.astype(str)
                 kyc_expand.dataframe(test)
 # ALERT_LOG
@@ -765,15 +856,20 @@ if authentication_status:
             alert_expander = st.expander("Show Alert Log")
             with alert_expander:
                 customer_ID = reordered_cust.get('ID', 'No Key')
-                customer_ID = str(customer_ID).strip('[]')
-                alert_log['ID'] = alert_log.ID.astype('str')
-                alert_log['Date'] = pd.to_datetime(alert_log['Date']).dt.date
-                cust_alerts = alert_log[alert_log['ID'].str.contains(str(customer_ID), na=False, regex=False).groupby([alert_log['Alert_ID']]).transform('any')]
-                cust_alerts = cust_alerts.sort_values('Date', ascending=True)
-                cust_alerts.set_index('Date', inplace=True)
-                test = cust_alerts.astype(str)
-                alert_expander.dataframe(test)
-
+                if customer_ID == 'No Key':
+                    alert_expander.error("Error: ID not found.")
+                else:
+                    customer_ID = str(customer_ID).strip('[]')
+                    alert_log['ID'] = alert_log.ID.astype('str')
+                    alert_log['Date'] = pd.to_datetime(alert_log['Date']).dt.date
+                    cust_alerts = alert_log[alert_log['ID'].str.contains(str(customer_ID), na=False, regex=False).groupby([alert_log['Alert_ID']]).transform('any')]
+                    if cust_alerts.empty == False:
+                        cust_alerts = cust_alerts.sort_values('Date', ascending=True)
+                        cust_alerts.set_index('Date', inplace=True)
+                        test = cust_alerts.astype(str)
+                        alert_expander.dataframe(test)
+                    else:
+                        alert_expander.warning("Warning: No alerts to show.")
 # TRANSACTIONS
             st.text("")
             c1, c2 = st.columns((1, 3.2))          
@@ -794,23 +890,26 @@ if authentication_status:
                     c1.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
             with st.expander("Show Transactions"):
-                if select == "nan":
-                    if adv_search == 'Company Name':
-                        customer_txs = concat_df[concat_df["Company_Name"].astype(str).str.contains(selectcomp, regex=False)]
-                    if adv_search == 'Username':
-                        customer_txs = concat_df[concat_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
-                    if adv_search == 'Phone':  
-                        customer_txs = concat_df[concat_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
-                else:
-                    customer_txs = concat_df[concat_df["Name_C"].astype(str).str.contains(select, regex=False)]
-                        
-                customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Name_C', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
+                if search_by == "Customer":
+                    concat_df['Entity_ID'].fillna("missing", inplace=True)
+                    customer_txs = concat_df[(concat_df.Entity_ID == "missing") &
+                            concat_df["Name_C"].astype(str).str.contains(cust_select, regex=False)]
+                if search_by == 'Username':
+                    customer_txs = concat_df[concat_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
+                if search_by == 'Phone':
+                    customer_txs = concat_df[concat_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
+                if search_by == "Entity":
+                    concat_df['Entity_ID'].fillna("missing", inplace=True)
+                    customer_txs = concat_df[concat_df["Entity_Name"].astype(str).str.contains(ent_select, regex=False)]
+                customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_C', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
                                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                                           'Inventory', 'Fraud', 'TX_Notes', 'Wallet_Notes',
                                           'Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades']]        
                 customer_txs = customer_txs.sort_values(by=['Control', 'TX_Date'], ascending=True)
                 customer_txs.dropna(subset = ['Control'], inplace=True)
                 customer_txs.set_index('Control', inplace=True)
+                customer_txs.drop('Name_C', index=1, inplace=True)
+                customer_txs['Entity_ID'].replace("missing", np.nan, inplace=True)
                 st.write(customer_txs.shape)
                 test = customer_txs.astype(str)
                 st.dataframe(test)
@@ -826,7 +925,7 @@ if authentication_status:
                     )
 # TX_OVER_TIME
             df_melt = customer_txs.melt(id_vars = ['TX_Date'], value_vars = ['Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades'])
-            fig = px.line(df_melt, x = "TX_Date", y = 'value', color = 'variable', title = "Customer Transaction Volume")
+            fig = px.line(df_melt, x = "TX_Date", y = 'value', color = 'variable', title = "Transaction Volume Over Time")
             fig.update_layout(xaxis_title="Date", yaxis_title="USD")
             c2.plotly_chart(fig)
 # RISK REPORT
