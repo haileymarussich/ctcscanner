@@ -901,14 +901,13 @@ if authentication_status:
                 if search_by == "Entity":
                     concat_df['Entity_ID'].fillna("missing", inplace=True)
                     customer_txs = concat_df[concat_df["Entity_Name"].astype(str).str.contains(ent_select, regex=False)]
-                customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_C', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
+                customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
                                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                                           'Inventory', 'Fraud', 'TX_Notes', 'Wallet_Notes',
                                           'Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades']]        
                 customer_txs = customer_txs.sort_values(by=['Control', 'TX_Date'], ascending=True)
                 customer_txs.dropna(subset = ['Control'], inplace=True)
                 customer_txs.set_index('Control', inplace=True)
-                customer_txs.drop(['Name_C'], axis=1)
                 customer_txs['Entity_ID'].replace("missing", np.nan, inplace=True)
                 st.write(customer_txs.shape)
                 test = customer_txs.astype(str)
