@@ -199,7 +199,7 @@ if authentication_status:
     concat_df['Username_C'] = concat_df.Username_C.astype(object)
     concat_df['Entity_Name'] = concat_df.Entity_Name.astype(object)
     concat_df['Entity_Type'] = concat_df.Entity_Type.astype('category')
-    concat_df['Owns_Entity'] = concat_df.Entity_Type.astype('category')
+    concat_df['Owns_Entity'] = concat_df.Owns_Entity.astype('category')
     concat_df['State'] = concat_df.State.astype('category')
     concat_df['DOB'] = pd.to_datetime(concat_df['DOB'])
     concat_df['Phone'] = concat_df.Phone.astype(object)
