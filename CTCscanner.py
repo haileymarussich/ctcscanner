@@ -765,16 +765,16 @@ if authentication_status:
 # FILTER AND SORT
         concat_df = concat_df.sort_values('Last_TX', ascending=False)
 # SELECTBOX        
-        search_by = st.radio("Search", ['Customer', 'Entity', 'Username', 'Phone'])
+        search_by = st.radio("Choose Filter", ['Customer', 'Entity', 'Username', 'Phone'])
         if search_by == "Customer":
             customer_option = concat_df.Name_C.dropna().unique()
             cust_select = st.selectbox("Select Customer", customer_option)
         if search_by == 'Username':
             usernames = concat_df.Username_C.dropna().unique()
-            selectuser = st.selectbox("Username", usernames)
+            selectuser = st.selectbox("Select Username", usernames)
         if search_by == 'Phone':
             phones = concat_df.Phone.dropna().unique()
-            selectphone = st.selectbox("Phone", phones)
+            selectphone = st.selectbox("Select Phone", phones)
         if search_by == "Entity":
             entity_option = concat_df.Entity_Name.dropna().unique()
             ent_select = st.selectbox("Select Entity", entity_option)
