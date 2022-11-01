@@ -485,6 +485,7 @@ if authentication_status:
         cust_columns.extend(['Risk_Rating', 'Review_Needed', 'Statements_Needed', 'First_TX', 'Last_TX', 'TX_Count'])
         customer_database_df = concat_df[cust_columns]
 # FILTER
+        customer_database_df.drop_duplicates(subset=['ID'], keep="last", inplace=True)
         for col in customer_database_df.columns:
             if is_datetime64_any_dtype(customer_database_df[col]):
                 customer_database_df[col] = pd.to_datetime(customer_database_df[col]).dt.date
