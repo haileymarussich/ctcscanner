@@ -211,7 +211,7 @@ if authentication_status:
     concat_df['Statements_Collected'] = pd.to_datetime(concat_df['Statements_Collected'])
     #
     concat_df['SAR_ID'] = concat_df.SAR_ID.astype(object)
-    concat_df['Folder_Location'] = concat_df.Folder_Created.astype('category')
+    concat_df['Folder_Location'] = concat_df.Folder_Location.astype('category')
     concat_df['Last_Review'] = pd.to_datetime(concat_df['Last_Review'])
     concat_df['SAR_Type'] = concat_df.SAR_Type.astype('category')
     concat_df['Alert_Date'] = pd.to_datetime(concat_df['Alert_Date'])
