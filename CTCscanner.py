@@ -899,6 +899,7 @@ if authentication_status:
                     c1.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
             with st.expander("Show Transactions"):
+                st.text("")
                 if search_by == "Customer":
                     concat_df['Entity_ID'].fillna("missing", inplace=True)
                     customer_txs = concat_df[(concat_df.Entity_ID == "missing") &
@@ -979,6 +980,7 @@ if authentication_status:
             cnt = 0
             sar_expand = c5.expander("Show Details")
             with sar_expand:
+                sar_expand.text("")
                 for val in vals:
                     key = (keyz[cnt])
                     val = val[0]
