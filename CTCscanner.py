@@ -331,7 +331,7 @@ if authentication_status:
     concat_df.loc[concat_df['Shared_Count'] > 1, 'Is_Shared_Wallet'] = "True"
     concat_df.loc[concat_df['Shared_Count'] > 1, 'Risk_Rating'] = "High Risk"
     
-    concat_df.loc[concat_df['Status'] == "Monitor", 'Risk_Rating'] = "High Risk"
+    concat_df.loc[concat_df['Status_C'] == "Monitor", 'Risk_Rating'] = "High Risk"
     
     concat_df['Risk_Rating'] = concat_df.Risk_Rating.astype('category')
     concat_df['Is_FEEVA'] = concat_df.Is_FEEVA.astype('category')
@@ -347,31 +347,31 @@ if authentication_status:
     max_end_date = dateindex_concat.index.max()
     
 # "APPROVED, BUT NEVER TRADED" -- CONCAT_DF
-    concat_df.loc[(concat_df['Status'].astype(str).str.contains("Approved")) &
+    concat_df.loc[(concat_df['Status_C'].astype(str).str.contains("Approved")) &
                   (concat_df['TX_Count'] == 0),
-                  'Status'] = "Approved, but never traded"
+                  'Status_C'] = "Approved, but never traded"
 
 # "DORMANT" STATUS -- CONCAT_DF
     concat_df['Months'] = 6
     concat_df['Last_Tx_Plus_6M'] = (concat_df['Last_TX'] + concat_df['Months'].values.astype("timedelta64[M]"))
     concat_df['Last_Review_Plus_6M'] = (concat_df['Last_Review'] + concat_df['Months'].values.astype("timedelta64[M]"))
     concat_df.loc[(concat_df['Last_Tx_Plus_6M'] < datetime.datetime.today()) &
-                  (concat_df['Status'] != 'SAR') &
+                  (concat_df['Status_C'] != 'SAR') &
                   ((concat_df['Last_Review_Plus_6M'] < datetime.datetime.today()) |
                   (concat_df['Last_Review'].isnull())),
-                  'Status'] = "Dormant"
+                  'Status_C'] = "Dormant"
     
     status_options = concat_df.Risk_Rating.unique()
-    concat_df['Status'] = concat_df.Status.astype('category')
+    concat_df['Status_C'] = concat_df.Status.astype('category')
     
 # REVIEW NEEDED -- CONCAT_DF 
     concat_df.loc[(concat_df['Risk_Rating'] == "High Risk") &
                   ((concat_df['Last_Review_Plus_6M'] < datetime.datetime.today()) |
                    (concat_df['Last_Review'].isnull())), 
                   'Review_Needed'] = 'Yes'
-    concat_df.loc[(concat_df['Status'] == "Dormant"),
+    concat_df.loc[(concat_df['Status_C'] == "Dormant"),
                   'Review_Needed'] = 'Yes'
-    concat_df.loc[(concat_df['Status'] == "Approved, but never traded") &
+    concat_df.loc[(concat_df['Status_C'] == "Approved, but never traded") &
                   ((concat_df['Last_Review_Plus_6M'] < datetime.datetime.today()) |
                    (concat_df['Last_Review'].isnull())),
                   'Review_Needed'] = 'Yes'
@@ -558,7 +558,7 @@ if authentication_status:
 # FRAME
         agg_from_concat = concat_df[['Rolling_Total', 'Percentile', 'TX_Count', 'Average_Volume', 'Rolling_Crypto_Sales', 
                                      'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades', 'ID', 'Name_C', 'Entity_ID','Entity_Name', 'Username_C',
-                                     'First_TX', 'Last_TX', 'Status', 'Risk_Rating',
+                                     'First_TX', 'Last_TX', 'Status_C', 'Risk_Rating',
                                      'Is_FEEVA', 'Is_High_Volume', 'Is_Financial_Inst', 'Is_BL_Wallet', 'Is_Shared_Wallet',
                                      'Statements_Needed', 'Review_Needed']]
 # FILTER
@@ -618,7 +618,7 @@ if authentication_status:
 # TILE AND FILE NAMES
         st.title('Blacklisted Addresses')   
 # FRAME
-        ofac_from_concat = concat_df[['Address', 'Is_BL_Wallet', 'ID', 'Name_C', 'Entity_ID', 'Entity_Name', 'First_TX', 'Last_TX', 'Status']]
+        ofac_from_concat = concat_df[['Address', 'Is_BL_Wallet', 'ID', 'Name_C', 'Entity_ID', 'Entity_Name', 'First_TX', 'Last_TX', 'Status_C']]
 # FILTER
         ofac_from_concat = ofac_from_concat.loc[(ofac_from_concat['Is_BL_Wallet'] == 'True')]
         ofac_from_concat.drop_duplicates(subset=['Address'], keep="last", inplace=True)
@@ -808,19 +808,19 @@ if authentication_status:
             c1, c2, c3, c4, c5 = st.columns((1, 0.1, 1, 0.1, 2))
             if search_by == "Entity":
                 col1.markdown("## Profile for {} ##".format(ent_select))
-                cust_list = ['Status', 'Entity_Name', 'Entity_ID', 'Entity_Type', 'Name_C', 'Username_C', 'ID', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list = ['Status_C', 'Entity_Name', 'Entity_ID', 'Entity_Type', 'Name_C', 'Username_C', 'ID', 'Phone', 'Email', 'State', 'State_Status']
                 cust_list2 = ['DOB', 'Age', 'Referral', 'First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Location', 'Statements_Collected', 'Last_Review']
             if search_by == "Customer":
                 col1.markdown("## Profile for {} ##".format(cust_select))
-                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'All_Entity_IDs', 'All_Entity_Names', 'All_Entity_Types', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list = ['Status_C','Name_C', 'Username_C', 'ID', 'All_Entity_IDs', 'All_Entity_Names', 'All_Entity_Types', 'Phone', 'Email', 'State', 'State_Status']
                 cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Location', 'Statements_Collected', 'Last_Review']
             if search_by == "Username":
                 col1.markdown("## Profile for {} ##".format(selectuser))
-                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'All_Entity_IDs', 'All_Entity_Names', 'All_Entity_Types', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list = ['Status_C','Name_C', 'Username_C', 'ID', 'All_Entity_IDs', 'All_Entity_Names', 'All_Entity_Types', 'Phone', 'Email', 'State', 'State_Status']
                 cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Location', 'Statements_Collected', 'Last_Review']
             if search_by == "Phone":
                 col1.markdown("## Profile for {} ##".format(selectphone))
-                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'All_Entity_IDs', 'All_Entity_Names', 'All_Entity_Types', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list = ['Status_C','Name_C', 'Username_C', 'ID', 'All_Entity_IDs', 'All_Entity_Names', 'All_Entity_Types', 'Phone', 'Email', 'State', 'State_Status']
                 cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Location', 'Statements_Collected', 'Last_Review']
 # CUSTOMER PROFILE -- PRINT
             reordered_cust = {k: original_dict[k] for k in cust_list}
