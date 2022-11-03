@@ -135,20 +135,20 @@ if authentication_status:
     customer_database['Entity_Count'] = customer_database.groupby("ID")['Entity_ID'].transform('count')
     customer_database["Entity_Count"] = pd.to_numeric(customer_database["Entity_Count"], errors="coerce")
     
-    customer_database['Entity_ID_List'] = customer_database.groupby('ID')['Entity_ID'].transform(lambda x: [x.unique()]*len(x))
-    customer_database['Entity_ID_List'] = customer_database.Entity_ID_List.astype('str')
-    customer_database['Entity_ID_List'] = customer_database['Entity_ID_List'].replace("[nan]", np.nan)
-    customer_database['Entity_ID_List'] = customer_database.Entity_ID_List.astype(object)
+    customer_database['All_Entity_IDs'] = customer_database.groupby('ID')['Entity_ID'].transform(lambda x: [x.unique()]*len(x))
+    customer_database['All_Entity_IDs'] = customer_database.All_Entity_IDs.astype('str')
+    customer_database['All_Entity_IDs'] = customer_database['All_Entity_IDs'].replace("[nan]", np.nan)
+    customer_database['All_Entity_IDs'] = customer_database.All_Entity_IDs.astype(object)
     
-    customer_database['Entity_N_List'] = customer_database.groupby('ID')['Entity_Name'].transform(lambda x: [x.unique()]*len(x))
-    customer_database['Entity_N_List'] = customer_database.Entity_N_List.astype('str')
-    customer_database['Entity_N_List'] = customer_database['Entity_N_List'].replace("[nan]", np.nan)
-    customer_database['Entity_N_List'] = customer_database.Entity_N_List.astype(object)
+    customer_database['All_Entity_Names'] = customer_database.groupby('ID')['Entity_Name'].transform(lambda x: [x.unique()]*len(x))
+    customer_database['All_Entity_Names'] = customer_database.All_Entity_Names.astype('str')
+    customer_database['All_Entity_Names'] = customer_database['All_Entity_Names'].replace("[nan]", np.nan)
+    customer_database['All_Entity_Names'] = customer_database.All_Entity_Names.astype(object)
     
-    customer_database['Entity_T_List'] = customer_database.groupby('ID')['Entity_Type'].transform(lambda x: [x.unique()]*len(x))
-    customer_database['Entity_T_List'] = customer_database.Entity_T_List.astype('str')
-    customer_database['Entity_T_List'] = customer_database['Entity_T_List'].replace("[nan]", np.nan)
-    customer_database['Entity_T_List'] = customer_database.Entity_T_List.astype(object)
+    customer_database['All_Entity_Types'] = customer_database.groupby('ID')['Entity_Type'].transform(lambda x: [x.unique()]*len(x))
+    customer_database['All_Entity_Types'] = customer_database.All_Entity_Types.astype('str')
+    customer_database['All_Entity_Types'] = customer_database['All_Entity_Types'].replace("[nan]", np.nan)
+    customer_database['All_Entity_Types'] = customer_database.All_Entity_Types.astype(object)
     
     customer_database.drop_duplicates(subset=['ID'], keep="last", inplace=True)
     customer_database.drop(['Entity_ID', 'Entity_Name', 'Entity_Type'], axis=1, inplace=True)
@@ -211,7 +211,7 @@ if authentication_status:
     concat_df['Statements_Collected'] = pd.to_datetime(concat_df['Statements_Collected'])
     #
     concat_df['SAR_ID'] = concat_df.SAR_ID.astype(object)
-    concat_df['Folder_Created'] = concat_df.Folder_Created.astype('category')
+    concat_df['Folder_Location'] = concat_df.Folder_Created.astype('category')
     concat_df['Last_Review'] = pd.to_datetime(concat_df['Last_Review'])
     concat_df['SAR_Type'] = concat_df.SAR_Type.astype('category')
     concat_df['Alert_Date'] = pd.to_datetime(concat_df['Alert_Date'])
@@ -319,7 +319,7 @@ if authentication_status:
     concat_df.loc[concat_df['Percentile'] > .9, 'Risk_Rating'] = "High Risk"
     concat_df.loc[concat_df['Percentile'] > .9, 'Is_High_Volume'] = "True"
     
-    concat_df['Is_Financial_Inst'] = concat_df['Entity_T_List'].str.contains('FI', na=False)
+    concat_df['Is_Financial_Inst'] = concat_df['All_Entity_Types'].str.contains('FI', na=False)
     concat_df['Is_Financial_Inst'] = concat_df['Is_Financial_Inst'].replace(False, np.nan, inplace=True)
     concat_df.loc[concat_df['Is_Financial_Inst'] == "True", 'Risk_Rating'] = "High Risk"
     
@@ -673,9 +673,9 @@ if authentication_status:
         concat_df.drop(['Months'], axis=1, inplace=True)
         concat_df['Shared_Identities'] = concat_df.Shared_Identities.astype('str')
         concat_df['Shared_Names'] = concat_df.Shared_Names.astype('str')
-        concat_df['Entity_ID_List'] = concat_df.Shared_Names.astype('str')
-        concat_df['Entity_N_List'] = concat_df.Shared_Names.astype('str')
-        concat_df['Entity_T_List'] = concat_df.Shared_Names.astype('str')
+        concat_df['All_Entity_IDs'] = concat_df.Shared_Names.astype('str')
+        concat_df['All_Entity_Names'] = concat_df.Shared_Names.astype('str')
+        concat_df['All_Entity_Types'] = concat_df.Shared_Names.astype('str')
         concat_df = concat_df.sort_values(by=['TX_Date', 'Control'], ascending=[False, False])
         concat_df.set_index('Control', inplace=True)
         concat_df['Entity_ID'].replace("missing", np.nan, inplace=True)
@@ -809,19 +809,19 @@ if authentication_status:
             if search_by == "Entity":
                 col1.markdown("## Profile for {} ##".format(ent_select))
                 cust_list = ['Status', 'Entity_Name', 'Entity_ID', 'Entity_Type', 'Name_C', 'Username_C', 'ID', 'Phone', 'Email', 'State', 'State_Status']
-                cust_list2 = ['DOB', 'Age', 'Referral', 'First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Created', 'Statements_Collected', 'Last_Review']
+                cust_list2 = ['DOB', 'Age', 'Referral', 'First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Location', 'Statements_Collected', 'Last_Review']
             if search_by == "Customer":
                 col1.markdown("## Profile for {} ##".format(cust_select))
-                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'Entity_ID_List', 'Entity_N_List', 'Entity_T_List', 'Phone', 'Email', 'State', 'State_Status']
-                cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Created', 'Statements_Collected', 'Last_Review']
+                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'All_Entity_IDs', 'All_Entity_Names', 'All_Entity_Types', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Location', 'Statements_Collected', 'Last_Review']
             if search_by == "Username":
                 col1.markdown("## Profile for {} ##".format(selectuser))
-                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'Entity_ID_List', 'Entity_N_List', 'Entity_T_List', 'Phone', 'Email', 'State', 'State_Status']
-                cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Created', 'Statements_Collected', 'Last_Review']
+                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'All_Entity_IDs', 'All_Entity_Names', 'All_Entity_Types', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Location', 'Statements_Collected', 'Last_Review']
             if search_by == "Phone":
                 col1.markdown("## Profile for {} ##".format(selectphone))
-                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'Entity_ID_List', 'Entity_N_List', 'Entity_T_List', 'Phone', 'Email', 'State', 'State_Status']
-                cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Created', 'Statements_Collected', 'Last_Review']
+                cust_list = ['Status','Name_C', 'Username_C', 'ID', 'All_Entity_IDs', 'All_Entity_Names', 'All_Entity_Types', 'Phone', 'Email', 'State', 'State_Status']
+                cust_list2 = ['DOB', 'Age', 'Referral','First_TX', 'Last_TX', 'Purpose', 'Source', 'Occupation', 'Folder_Location', 'Statements_Collected', 'Last_Review']
 # CUSTOMER PROFILE -- PRINT
             reordered_cust = {k: original_dict[k] for k in cust_list}
             vals = list(reordered_cust.values())
