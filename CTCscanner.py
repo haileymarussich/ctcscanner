@@ -802,6 +802,10 @@ if authentication_status:
                 if is_numeric_dtype(customerdata[col]):
                     customerdata[col] = customerdata[col].round(2)
             customerdata['Entity_ID'].replace("missing", np.nan, inplace=True)
+            customerdata['Shared_Identities'] = customerdata.Shared_Identities.astype('str')
+            customerdata['Shared_Identities'].replace("nan", "-----", inplace=True)
+            customerdata['Shared_Names'] = customerdata.Shared_Names.astype('str')
+            customerdata['Shared_Names'].replace("nan", "-----", inplace=True)
             original_dict = customerdata.to_dict(orient="list")
 # CUSTOMER PROFILE -- FILTER
             col1, col2 = st.columns(2)
@@ -956,7 +960,7 @@ if authentication_status:
             for val in vals:
                 key = (keyz[cnt])
                 val = val[0]
-                if pd.isnull(any(val)) == True:
+                if pd.isnull(val) == True:
                     c3.markdown('**{0}:** -----'.format(key))
                 else:
                     c3.markdown('**{0}:** {1}'.format(key, val))
