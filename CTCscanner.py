@@ -179,7 +179,7 @@ if authentication_status:
     concat_df['ID'] = concat_df['ID'].values.astype(object)
     concat_df['Entity_ID'] = concat_df['Entity_ID'].values.astype(object)
     concat_df['Name_T'] = concat_df['Name_T'].values.astype(object)
-    concat_df['Username'] = concat_df['Username'].values.astype('str')
+    concat_df['Username_T'] = concat_df['Username'].values.astype('str')
     concat_df["Amount_Received"] = pd.to_numeric(concat_df["Amount_Received"], errors="coerce")
     concat_df['Asset_Received'] = concat_df.Asset_Received.astype('category')
     concat_df['Received_At'] = concat_df.Received_At.astype('category')
@@ -422,7 +422,7 @@ if authentication_status:
     #        notes = right.text_input("Transaction Notes")
     #        submitted = st.form_submit_button(label="Submit")
 # FRAME
-        tx_log_df = concat_df[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
+        tx_log_df = concat_df[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_T', 'Username_C', 'Amount_Received', 'Asset_Received', 'Received_At', 
                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                           'Inventory','Fraud', 'TX_Notes', 'Wallet_Notes', 'Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases',
                           'Rolling_Crypto_Trades']]
@@ -902,7 +902,7 @@ if authentication_status:
                 if search_by == "Entity":
                     concat_df['Entity_ID'].fillna("missing", inplace=True)
                     customer_txs = concat_df[concat_df["Entity_Name"].astype(str).str.contains(ent_select, regex=False)]
-                customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_T', 'Username', 'Amount_Received', 'Asset_Received', 'Received_At', 
+                customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_T', 'Username_T', 'Amount_Received', 'Asset_Received', 'Received_At', 
                                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                                           'Inventory', 'Fraud', 'TX_Notes', 'Wallet_Notes',
                                           'Rolling_Total','Rolling_Crypto_Sales', 'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades']]        
