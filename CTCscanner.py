@@ -762,7 +762,7 @@ if authentication_status:
 # CUSTOMER SEARCH PAGE -------------------------------------------------------------------------------------------------------------
     if selected == 'Customer Search':     
 # TITLE AND FILE NAMES
-        st.title('Customer Search')   
+        st.title('Customer Search')
 # FILTER AND SORT
         concat_df = concat_df.sort_values('Last_TX', ascending=False)
         concat_df['Shared_Identities'] = concat_df.Shared_Identities.astype('str')
@@ -772,6 +772,7 @@ if authentication_status:
 # SELECTBOX        
         search_by = st.radio("Choose Filter", ['Customer', 'Entity', 'Username', 'Phone'])
         if search_by == "Customer":
+            concat_df = concat_df[concat_df.Entity_ID == "missing"]
             customer_option = concat_df.Name_C.dropna().unique()
             cust_select = st.selectbox("Select Customer", customer_option)
         if search_by == 'Username':
