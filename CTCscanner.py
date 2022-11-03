@@ -362,7 +362,7 @@ if authentication_status:
                   'Status_C'] = "Dormant"
     
     status_options = concat_df.Risk_Rating.unique()
-    concat_df['Status_C'] = concat_df.Status.astype('category')
+    concat_df['Status_C'] = concat_df.Status_C.astype('category')
     
 # REVIEW NEEDED -- CONCAT_DF 
     concat_df.loc[(concat_df['Risk_Rating'] == "High Risk") &
