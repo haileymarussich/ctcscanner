@@ -956,7 +956,7 @@ if authentication_status:
             for val in vals:
                 key = (keyz[cnt])
                 val = val[0]
-                if pd.isnull(val).any() == True:
+                if pd.isnull(any(val)) == True:
                     c3.markdown('**{0}:** -----'.format(key))
                 else:
                     c3.markdown('**{0}:** {1}'.format(key, val))
