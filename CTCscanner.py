@@ -855,12 +855,15 @@ if authentication_status:
 # KYC_CHECKLIST
             kyc_expand = c5.expander("Show KYC Checklist")
             with kyc_expand:
+                kyc_expand.text("")
+                kyc_check = kyc_check.set_index(kyc_check.iloc[:,0])
                 test = kyc_check.astype(str)
                 kyc_expand.dataframe(test)
 # ALERT_LOG
             st.text("")
             alert_expander = st.expander("Show Alert Log")
             with alert_expander:
+                alert_expander.text("")
                 customer_ID = reordered_cust.get('ID', 'No Key')
                 if customer_ID == 'No Key':
                     alert_expander.error("Error: ID not found.")
@@ -875,7 +878,7 @@ if authentication_status:
                         test = cust_alerts.astype(str)
                         alert_expander.dataframe(test)
                     else:
-                        alert_expander.warning("Warning: No alerts to show.")
+                        alert_expander.info("No alerts to show.")
 # TRANSACTIONS
             st.text("")
             c1, c2 = st.columns((1, 3.2))          
