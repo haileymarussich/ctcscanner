@@ -765,6 +765,11 @@ if authentication_status:
         st.title('Customer Search')   
 # FILTER AND SORT
         concat_df = concat_df.sort_values('Last_TX', ascending=False)
+        concat_df['Entity_ID'].replace("missing", np.nan, inplace=True)
+        concat_df['Shared_Identities'] = concat_df.Shared_Identities.astype('str')
+        concat_df['Shared_Identities'].replace("nan", "-----", inplace=True)
+        concat_df['Shared_Names'] = concat_df.Shared_Names.astype('str')
+        concat_df['Shared_Names'].replace("nan", "-----", inplace=True)
 # SELECTBOX        
         search_by = st.radio("Choose Filter", ['Customer', 'Entity', 'Username', 'Phone'])
         if search_by == "Customer":
@@ -801,11 +806,6 @@ if authentication_status:
                     customerdata[col] = pd.to_datetime(customerdata[col]).dt.date
                 if is_numeric_dtype(customerdata[col]):
                     customerdata[col] = customerdata[col].round(2)
-            customerdata['Entity_ID'].replace("missing", np.nan, inplace=True)
-            customerdata['Shared_Identities'] = customerdata.Shared_Identities.astype('str')
-            customerdata['Shared_Identities'].replace("nan", "-----", inplace=True)
-            customerdata['Shared_Names'] = customerdata.Shared_Names.astype('str')
-            customerdata['Shared_Names'].replace("nan", "-----", inplace=True)
             original_dict = customerdata.to_dict(orient="list")
 # CUSTOMER PROFILE -- FILTER
             col1, col2 = st.columns(2)
