@@ -236,17 +236,13 @@ if authentication_status:
     
 # TX_TYPE -- CONCAT_DF
     concat_df.loc[(concat_df['Asset_Received'] == "USD") &
-                  (concat_df['Asset_Sent'] != "USD") &
-                  (concat_df['Asset_Sent'].notnull()),
+                  (concat_df['Asset_Sent'] != "USD"),
                   'TX_Type'] = 'Crypto Sale'
     concat_df.loc[(concat_df['Asset_Received'] != "USD") &
-                  (concat_df['Asset_Sent'] == "USD") &
-                  (concat_df['Asset_Received'].notnull()),
+                  (concat_df['Asset_Sent'] == "USD"),
                   'TX_Type'] = 'Crypto Purchase'
     concat_df.loc[(concat_df['Asset_Received'] != "USD") &
-                  (concat_df['Asset_Sent'] != "USD") &
-                  (concat_df['Asset_Received'].notnull()) &
-                  (concat_df['Asset_Sent'].notnull()),
+                  (concat_df['Asset_Sent'] != "USD"),
                   'TX_Type'] = 'Crypto Trade'
     concat_df.loc[(concat_df['TX_Notes'].astype(str).str.contains("Commission")), 'TX_Type'] = "Commission"
     concat_df.loc[(concat_df['TX_Notes'].astype(str).str.contains("Referral")), 'TX_Type'] = "Referral"
@@ -255,13 +251,13 @@ if authentication_status:
     
 # CRYPTO_SALES -- CONCAT_DF
     concat_df['Rolling_Crypto_Sales'] = concat_df.where(concat_df.TX_Type == "Crypto Sale").groupby(
-        ['ID', 'Entity_ID'])['Trade_Value'].cumsum()
+        ['ID', 'Entity_ID'])['Amount_Received'].cumsum()
     concat_df['Rolling_Crypto_Sales'] = concat_df.groupby(['ID', 'Entity_ID'])['Rolling_Crypto_Sales'].ffill()
     concat_df["Rolling_Crypto_Sales"] = pd.to_numeric(concat_df["Rolling_Crypto_Sales"], errors="coerce")
 
 # CRYPTO_PURCHASES -- CONCAT_DF  
     concat_df['Rolling_Crypto_Purchases'] = concat_df.where(concat_df.TX_Type == "Crypto Purchase").groupby(
-        ['ID', 'Entity_ID'])['Trade_Value'].cumsum()
+        ['ID', 'Entity_ID'])['Amount_Sent'].cumsum()
     concat_df['Rolling_Crypto_Purchases'] = concat_df.groupby(['ID', 'Entity_ID'])['Rolling_Crypto_Purchases'].ffill()
     concat_df["Rolling_Crypto_Purchases"] = pd.to_numeric(concat_df["Rolling_Crypto_Purchases"], errors="coerce")
     
@@ -279,6 +275,21 @@ if authentication_status:
 # AGG_TOTAL -- CONCAT_DF
     concat_df["Aggregate_Total"] = concat_df.groupby(["ID", 'Entity_ID'])["Trade_Value"].transform('sum')
     concat_df["Aggregate_Total"] = pd.to_numeric(concat_df["Aggregate_Total"], errors="coerce")
+    
+# AGG_TOTAL_SALES -- CONCAT_DF
+    #concat_df['Aggregate_Total_Sales'] = concat_df.where(concat_df.TX_Type == "Crypto Sale").groupby(
+    #    ['ID', 'Entity_ID'])['Amount_Received'].transform('sum')
+    #concat_df["Aggregate_Total_Sales"] = pd.to_numeric(concat_df["Aggregate_Total_Sales"], errors="coerce")
+    
+# AGG_TOTAL_PURCHASES -- CONCAT_DF
+    #concat_df['Aggregate_Total_Purchases'] = concat_df.where(concat_df.TX_Type == "Crypto Purchase").groupby(
+    #    ['ID', 'Entity_ID'])['Amount_Sent'].transform('sum')
+    #concat_df["Aggregate_Total_Purchases"] = pd.to_numeric(concat_df["Aggregate_Total_Purchases"], errors="coerce")
+    
+# AGG_TOTAL_TRADES -- CONCAT_DF
+    #concat_df['Aggregate_Total_Trades'] = concat_df.where(concat_df.TX_Type == "Crypto Trade").groupby(
+    #    ['ID', 'Entity_ID'])['Trade_Value'].transform('sum')
+    #concat_df["Aggregate_Total_Trades"] = pd.to_numeric(concat_df["Aggregate_Total_Trades"], errors="coerce")
     
 # AVG_VOLUME -- CONCAT_DF
     concat_df['Average_Volume'] = concat_df.groupby(['ID', 'Entity_ID'])['Trade_Value'].transform('mean')
@@ -298,6 +309,7 @@ if authentication_status:
             Shared_Count = ('ID', 'nunique'),
             Shared_Identities = ('ID', 'unique'),
             Shared_Names = ('Name_C', 'unique'),
+            Shared_Usernames = ('Username_C', 'unique'),
             Shared_Total = ('Trade_Value', 'sum'),
             Wallet_First_TX = ('TX_Date', 'min'),
             Wallet_Last_TX = ('TX_Date', 'max'))
@@ -316,8 +328,8 @@ if authentication_status:
     concat_df.loc[(concat_df['Age'] > 60), 'Is_FEEVA'] = "True"
     
     concat_df['Percentile'] = concat_df['Aggregate_Total'].rank(pct=True)
-    concat_df.loc[concat_df['Percentile'] > .9, 'Risk_Rating'] = "High Risk"
-    concat_df.loc[concat_df['Percentile'] > .9, 'Is_High_Volume'] = "True"
+    concat_df.loc[concat_df['Percentile'] > .85, 'Risk_Rating'] = "High Risk"
+    concat_df.loc[concat_df['Percentile'] > .85, 'Is_High_Volume'] = "True"
     
     concat_df['Is_Financial_Inst'] = concat_df['All_Entity_Types'].str.contains('FI', na=False)
     concat_df['Is_Financial_Inst'] = concat_df['Is_Financial_Inst'].replace(False, np.nan, inplace=True)
@@ -387,6 +399,9 @@ if authentication_status:
     concat_df.loc[(concat_df['Risk_Rating'] == "High Risk") &
                   (concat_df['Age'] < 60) & 
                   (concat_df['Rolling_Crypto_Sales'].astype(np.float64) > 200000) &
+                  (concat_df['Statements_Collected'].isnull()),
+                  'Statements_Needed'] = 'Yes'
+    concat_df.loc[(concat_df['Is_High_Volume'] == "True") &
                   (concat_df['Statements_Collected'].isnull()),
                   'Statements_Needed'] = 'Yes'
     
@@ -673,6 +688,7 @@ if authentication_status:
         concat_df.drop(['Months'], axis=1, inplace=True)
         concat_df['Shared_Identities'] = concat_df.Shared_Identities.astype('str')
         concat_df['Shared_Names'] = concat_df.Shared_Names.astype('str')
+        concat_df['Shared_Usernames'] = concat_df.Shared_Usernames.astype('str')
         concat_df['All_Entity_IDs'] = concat_df.Shared_Names.astype('str')
         concat_df['All_Entity_Names'] = concat_df.Shared_Names.astype('str')
         concat_df['All_Entity_Types'] = concat_df.Shared_Names.astype('str')
@@ -769,6 +785,8 @@ if authentication_status:
         concat_df['Shared_Identities'].replace("nan", np.nan, inplace=True)
         concat_df['Shared_Names'] = concat_df.Shared_Names.astype('str')
         concat_df['Shared_Names'].replace("nan", np.nan, inplace=True)
+        concat_df['Shared_Usernames'] = concat_df.Shared_Usernames.astype('str')
+        concat_df['Shared_Usernames'].replace("nan", np.nan, inplace=True)
 # SELECTBOX        
         search_by = st.radio("Choose Filter", ['Customer', 'Entity', 'Username', 'Phone'])
         if search_by == "Customer":
@@ -869,9 +887,10 @@ if authentication_status:
                     alert_expander.error("Error: ID not found.")
                 else:
                     customer_ID = str(customer_ID).strip('[]')
+                    customer_ID2 = customer_ID.replace("'","")
                     alert_log['ID'] = alert_log.ID.astype('str')
                     alert_log['Date'] = pd.to_datetime(alert_log['Date']).dt.date
-                    cust_alerts = alert_log[alert_log['ID'].str.contains(str(customer_ID), na=False, regex=False).groupby([alert_log['Alert_ID']]).transform('any')]
+                    cust_alerts = alert_log[alert_log['ID'].str.contains(str(customer_ID2), na=False, regex=False).groupby([alert_log['Alert_ID']]).transform('any')]
                     if cust_alerts.empty == False:
                         cust_alerts = cust_alerts.sort_values('Date', ascending=True)
                         cust_alerts.set_index('Date', inplace=True)
@@ -883,7 +902,7 @@ if authentication_status:
             st.text("")
             c1, c2 = st.columns((1, 3.2))          
             c1.markdown("### Transactions ###")
-            tx_list = ['Rolling_Total', 'Percentile', 'TX_Count', 'Average_Volume', 'Rolling_Crypto_Sales',
+            tx_list = ['Aggregate_Total', 'Percentile', 'TX_Count', 'Average_Volume', 'Rolling_Crypto_Sales',
                        'Rolling_Crypto_Purchases', 'Rolling_Crypto_Trades', 'Average_Volume']
             
             reordered_dict4 = {k: original_dict[k] for k in tx_list}
@@ -904,13 +923,21 @@ if authentication_status:
                     concat_df['Entity_ID'].fillna("missing", inplace=True)
                     customer_txs = concat_df[(concat_df.Entity_ID == "missing") &
                             concat_df["Name_C"].astype(str).str.contains(cust_select, regex=False)]
+                    if concat_df.empty == True:
+                        st.info('No transactions to show.')
                 if search_by == 'Username':
                     customer_txs = concat_df[concat_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
+                    if concat_df.empty == True:
+                        st.info('No transactions to show.')
                 if search_by == 'Phone':
                     customer_txs = concat_df[concat_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
+                    if concat_df.empty == True:
+                        st.info('No transactions to show.')
                 if search_by == "Entity":
                     concat_df['Entity_ID'].fillna("missing", inplace=True)
                     customer_txs = concat_df[concat_df["Entity_Name"].astype(str).str.contains(ent_select, regex=False)]
+                    if concat_df.empty == True:
+                        st.info('No transactions to show.')
                 customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_T', 'Username_T', 'Amount_Received', 'Asset_Received', 'Received_At', 
                                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                                           'Inventory', 'Fraud', 'TX_Notes', 'Wallet_Notes',
@@ -944,7 +971,7 @@ if authentication_status:
             col1.markdown("### Risk Report ###")
             risk_list = ['Review_Needed', 'Statements_Needed', 'Risk_Rating', 'Is_FEEVA', 
                              'Is_High_Volume', 'Is_Financial_Inst',  'Is_BL_Wallet']
-            risk_list2 = ['Is_Shared_Wallet', 'Shared_Identities', 'Shared_Names', 'Shared_Count', 
+            risk_list2 = ['Is_Shared_Wallet', 'Shared_Identities', 'Shared_Names', 'Shared_Usernames', 
                           'Shared_Total', 'Wallet_First_TX', 'Wallet_Last_TX']
             reordered_dict2 = {k: original_dict[k] for k in risk_list}
             cnt = 0
