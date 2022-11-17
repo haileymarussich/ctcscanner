@@ -923,20 +923,20 @@ if authentication_status:
                     concat_df['Entity_ID'].fillna("missing", inplace=True)
                     customer_txs = concat_df[(concat_df.Entity_ID == "missing") &
                             concat_df["Name_C"].astype(str).str.contains(cust_select, regex=False)]
-                    if concat_df.empty == True:
+                    if customer_txs.empty == True:
                         st.info('No transactions to show.')
                 if search_by == 'Username':
                     customer_txs = concat_df[concat_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
-                    if concat_df.empty == True:
+                    if customer_txs.empty == True:
                         st.info('No transactions to show.')
                 if search_by == 'Phone':
                     customer_txs = concat_df[concat_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
-                    if concat_df.empty == True:
+                    if customer_txs.empty == True:
                         st.info('No transactions to show.')
                 if search_by == "Entity":
                     concat_df['Entity_ID'].fillna("missing", inplace=True)
                     customer_txs = concat_df[concat_df["Entity_Name"].astype(str).str.contains(ent_select, regex=False)]
-                    if concat_df.empty == True:
+                    if customer_txs.empty == True:
                         st.info('No transactions to show.')
                 customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_T', 'Username_T', 'Amount_Received', 'Asset_Received', 'Received_At', 
                                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
