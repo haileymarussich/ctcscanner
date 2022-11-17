@@ -167,7 +167,7 @@ if authentication_status:
     concat_df1 = pd.merge(tx_log, customer_database, on = "ID", how = "outer")
     concat_df2 = pd.merge(concat_df1, entity_database[['Entity_ID', 'Entity_Name', 'Entity_Type']], on = "Entity_ID", how = "left")
     concat_df3 = pd.merge(concat_df2, state_status, on = "State", how = "left")
-    concat_df = pd.merge(concat_df3, SAR_log, on = "SAR_ID", how = "left")
+    concat_df = pd.merge(concat_df3, SAR_log, on = ["SAR_ID", "ID"], how = "left")
     
 # CLEAN -- CONCAT_DF
     concat_df.columns = concat_df.columns.str.replace(' ', '')
@@ -216,7 +216,7 @@ if authentication_status:
     concat_df['SAR_Type'] = concat_df.SAR_Type.astype('category')
     concat_df['Alert_Date'] = pd.to_datetime(concat_df['Alert_Date'])
     concat_df['Prompt'] = concat_df.Prompt.astype(object)
-    concat_df['ID_S'] = concat_df.ID_S.astype(object)
+    #concat_df['ID_S'] = concat_df.ID_S.astype(object)
     concat_df['Name_S'] = concat_df.Name_S.astype(object)
     concat_df["SAR_TX_Total"] = pd.to_numeric(concat_df["SAR_TX_Total"], errors="coerce")
     concat_df['Date_Filed'] = pd.to_datetime(concat_df['Date_Filed'])
