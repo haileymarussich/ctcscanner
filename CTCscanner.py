@@ -576,8 +576,41 @@ if authentication_status:
                                      'First_TX', 'Last_TX', 'Status_C', 'Risk_Rating',
                                      'Is_FEEVA', 'Is_High_Volume', 'Is_Financial_Inst', 'Is_BL_Wallet', 'Is_Shared_Wallet',
                                      'Statements_Needed', 'Review_Needed']]
+
+        def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+            modify = st.checkbox("Add Filters", key = "modify", value=True)
+            if not modify:
+                return df
+            df = df.copy()   
+            modification_container = st.container()
+            with modification_container:
+                user_date_input = st.date_input("Filter for Last_TX",
+                                                       value=(
+                                                           df["Last_TX"].min(),
+                                                           df["Last_TX"].max()))
+                if len(user_date_input) == 2:
+                    user_date_input = tuple(map(pd.to_datetime, user_date_input))
+                    start_date, end_date = user_date_input
+                    df = df.loc[df["Last_TX"].between(start_date, end_date)]
+                
+                
+                _min = float(df["Rolling_Total"].min())
+                _max = float(df["Rolling_Total"].max())
+                step = ((_max - _min) / 100)
+                user_num_input = st.slider("Values for Rolling_Total",
+                                                          min_value=_min,
+                                                          max_value=_max,
+                                                          value=(_min, _max),
+                                                          step=step)
+                df = df[df["Rolling_Total"].between(*user_num_input)]  
+            return df                     
+
+        df = agg_from_concat
+        agg_from_concat = filter_dataframe(agg_from_concat)
+
 # FILTER
         agg_from_concat.drop_duplicates(subset=['ID', 'Entity_ID'], keep="last", inplace=True)
+        agg_from_concat.dropna(subset=['First_TX'], inplace=True)
         for col in agg_from_concat.columns:
             if is_datetime64_any_dtype(agg_from_concat[col]):
                 agg_from_concat[col] = pd.to_datetime(agg_from_concat[col]).dt.date
@@ -588,6 +621,7 @@ if authentication_status:
         agg_from_concat = agg_from_concat.sort_values('Rolling_Total', ascending=False)
         agg_from_concat.set_index('Percentile', inplace=True)
         agg_from_concat['Entity_ID'].replace("missing", np.nan, inplace=True)
+        agg_from_concat = agg_from_concat.sort_values(['Last_TX', 'Rolling_Total'], ascending=[False,False])
 # PRINT
         st.write(agg_from_concat.shape)
         test = agg_from_concat.astype(str)
