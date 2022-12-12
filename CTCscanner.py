@@ -165,7 +165,7 @@ if authentication_status:
     
 # CONCAT ALL DATA -- CONCAT_DF
     concat_df1 = pd.merge(tx_log, customer_database, on = "ID", how = "outer")
-    concat_df2 = pd.merge(concat_df1, entity_database[['Entity_ID', 'Entity_Name', 'Entity_Type']], on = "Entity_ID", how = "left")
+    concat_df2 = pd.merge(concat_df1, entity_database[['Entity_ID', 'Entity_Name', 'Entity_Type', 'Status_E']], on = "Entity_ID", how = "left")
     concat_df3 = pd.merge(concat_df2, state_status, on = "State", how = "left")
     concat_df = pd.merge(concat_df3, SAR_log, on = ["SAR_ID", "ID"], how = "left")
     
@@ -888,7 +888,7 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c1.markdown('**{0}:** -----'.format(key))
+                    c1.markdown('**{0}:** '.format(key))
                 else:
                     c1.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
@@ -900,7 +900,7 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c3.markdown('**{0}:** -----'.format(key))
+                    c3.markdown('**{0}:** '.format(key))
                 else:
                     c3.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
@@ -913,7 +913,7 @@ if authentication_status:
                 kyc_expand.dataframe(test)
 # ALERT_LOG
             st.text("")
-            alert_expander = st.expander("Show Alert Log")
+            alert_expander = st.expander("Show Alert Log", expanded = True)
             with alert_expander:
                 alert_expander.text("")
                 customer_ID = reordered_cust.get('ID', 'No Key')
@@ -947,7 +947,7 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c1.markdown('**{0}:** -----'.format(key))
+                    c1.markdown('**{0}:** '.format(key))
                 else:
                     c1.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
@@ -957,21 +957,13 @@ if authentication_status:
                     concat_df['Entity_ID'].fillna("missing", inplace=True)
                     customer_txs = concat_df[(concat_df.Entity_ID == "missing") &
                             concat_df["Name_C"].astype(str).str.contains(cust_select, regex=False)]
-                    if customer_txs.empty == True:
-                        st.info('No transactions to show.')
                 if search_by == 'Username':
                     customer_txs = concat_df[concat_df["Username_C"].astype(str).str.contains(str(selectuser), regex=False)]
-                    if customer_txs.empty == True:
-                        st.info('No transactions to show.')
                 if search_by == 'Phone':
                     customer_txs = concat_df[concat_df["Phone"].astype(str).str.contains(str(selectphone), regex=False)]
-                    if customer_txs.empty == True:
-                        st.info('No transactions to show.')
                 if search_by == "Entity":
                     concat_df['Entity_ID'].fillna("missing", inplace=True)
                     customer_txs = concat_df[concat_df["Entity_Name"].astype(str).str.contains(ent_select, regex=False)]
-                    if customer_txs.empty == True:
-                        st.info('No transactions to show.')
                 customer_txs = customer_txs[['Control', 'TX_Date', 'TX_Type', 'ID', 'Entity_ID', 'Name_T', 'Username_T', 'Amount_Received', 'Asset_Received', 'Received_At', 
                                           'Received', 'Amount_Sent', 'Asset_Sent', 'Sent_From', 'Address', 'Sent', 'Exchange_Rate', 'Trade_Value',
                                           'Inventory', 'Fraud', 'TX_Notes', 'Wallet_Notes',
@@ -980,9 +972,12 @@ if authentication_status:
                 customer_txs.dropna(subset = ['Control'], inplace=True)
                 customer_txs.set_index('Control', inplace=True)
                 customer_txs['Entity_ID'].replace("missing", np.nan, inplace=True)
-                st.write(customer_txs.shape)
-                test = customer_txs.astype(str)
-                st.dataframe(test)
+                if customer_txs.empty == True:
+                    st.info('No transactions to show.')
+                else:
+                    st.write(customer_txs.shape)
+                    test = customer_txs.astype(str)
+                    st.dataframe(test)
 # DOWNLOAD
                 @st.cache
                 def convert_df_to_csv(df):
@@ -1015,7 +1010,7 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c1.markdown('**{0}:** -----'.format(key))
+                    c1.markdown('**{0}:** '.format(key))
                 else:
                     c1.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
@@ -1027,7 +1022,7 @@ if authentication_status:
                 key = (keyz[cnt])
                 val = val[0]
                 if pd.isnull(val) == True:
-                    c3.markdown('**{0}:** -----'.format(key))
+                    c3.markdown('**{0}:** '.format(key))
                 else:
                     c3.markdown('**{0}:** {1}'.format(key, val))
                 cnt += 1
@@ -1046,7 +1041,7 @@ if authentication_status:
                     key = (keyz[cnt])
                     val = val[0]
                     if pd.isnull(val) == True:
-                        sar_expand.markdown('**{0}:** -----'.format(key))
+                        sar_expand.markdown('**{0}:** '.format(key))
                     else:
                         sar_expand.markdown('**{0}:** {1}'.format(key, val))
                     cnt += 1
